@@ -1,58 +1,35 @@
-package com.medconnect.backend.model;
+package com.medconnect.backend.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+import com.medconnect.backend.model.AuthProvider;
+import com.medconnect.backend.model.Role;
+import com.medconnect.backend.model.UserStatus;
 
-@Entity
-@Table(name = "users")
-public class User {
+public class UserResponse {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false, length = 200)
     private String name;
-
-    @Column(nullable = false, unique = true, length = 255)
     private String email;
-
-    @JsonIgnore
-    @Column(nullable = false, length = 255)
-    private String password;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
     private Role role;
-
-    @Column(length = 32)
     private String phone;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
-    private UserStatus status = UserStatus.PENDING;
-
-    @Column(length = 200)
+    private UserStatus status;
     private String specialization;
-
     private Integer experience;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
-    private AuthProvider provider = AuthProvider.LOCAL;
-
-    @Column(length = 255)
+    private AuthProvider provider;
     private String emergencyContact;
 
-    @PrePersist
-    @PreUpdate
-    void applyDefaults() {
-        if (provider == null) {
-            provider = AuthProvider.LOCAL;
-        }
-        if (status == null) {
-            status = UserStatus.PENDING;
-        }
+    public static UserResponse from(com.medconnect.backend.model.User user) {
+        UserResponse r = new UserResponse();
+        r.setId(user.getId());
+        r.setName(user.getName());
+        r.setEmail(user.getEmail());
+        r.setRole(user.getRole());
+        r.setPhone(user.getPhone());
+        r.setStatus(user.getStatus());
+        r.setSpecialization(user.getSpecialization());
+        r.setExperience(user.getExperience());
+        r.setProvider(user.getProvider());
+        r.setEmergencyContact(user.getEmergencyContact());
+        return r;
     }
 
     public Long getId() {
@@ -77,14 +54,6 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 
     public Role getRole() {
