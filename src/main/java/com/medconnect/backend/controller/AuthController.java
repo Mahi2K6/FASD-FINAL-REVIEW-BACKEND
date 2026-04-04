@@ -1,13 +1,13 @@
 package com.medconnect.backend.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
 import com.medconnect.backend.model.User;
 import com.medconnect.backend.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") 
+@CrossOrigin(origins = "*")
 public class AuthController {
 
     @Autowired
@@ -15,27 +15,27 @@ public class AuthController {
 
     @PostMapping("/register")
     public User register(@RequestBody User user) {
-        
-        // 1. SECURITY BLOCK: No Admin registration
+
         if ("ADMIN".equalsIgnoreCase(user.getRole())) {
-            throw new RuntimeException("Security Alert: Admin registration is blocked.");
+            throw new RuntimeException("Admin registration not allowed");
         }
 
-        // 2. Prevent Duplicate UserIDs
-        if (userRepository.findByUserid(user.getUserid()) != null) {
-            throw new RuntimeException("UserID already exists!");
+        if (userRepository.findByUsername(user.getUsername()) != null) {
+            throw new RuntimeException("Username already exists");
         }
 
-        // 3. NEW: Require License ID for Professionals
-        if ("DOCTOR".equalsIgnoreCase(user.getRole()) || "PHARMACIST".equalsIgnoreCase(user.getRole())) {
+        if ("DOCTOR".equalsIgnoreCase(user.getRole()) ||
+            "PHARMACIST".equalsIgnoreCase(user.getRole())) {
+
             if (user.getLicenseId() == null || user.getLicenseId().trim().isEmpty()) {
-                throw new RuntimeException("A valid Medical/Pharmacy License ID is required for registration.");
+                throw new RuntimeException("License ID required");
             }
-            user.setApprovalStatus("PENDING"); 
+
+            user.setApprovalStatus("PENDING");
+
         } else {
-            // Patients
-            user.setApprovalStatus("APPROVED"); 
-            user.setSubscriptionPlan("FREE");   
+            user.setApprovalStatus("APPROVED");
+            user.setSubscriptionPlan("FREE");
         }
 
         return userRepository.save(user);
@@ -43,11 +43,13 @@ public class AuthController {
 
     @PostMapping("/login")
     public User login(@RequestBody User loginUser) {
-        User user = userRepository.findByUserid(loginUser.getUserid());
-        
+
+        User user = userRepository.findByUsername(loginUser.getUsername());
+
         if (user != null && user.getPassword().equals(loginUser.getPassword())) {
             return user;
         }
+
         return null;
     }
 }
