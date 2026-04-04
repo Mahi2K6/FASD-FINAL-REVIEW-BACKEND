@@ -1,5 +1,6 @@
 package com.medconnect.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 @Entity
@@ -10,13 +11,14 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(name = "username", unique = true, nullable = false, length = 128)
     private String username;
 
-    @Column(nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Column(nullable = false, length = 255)
     private String password;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 32)
     private String role;
 
     private String fullName;
@@ -28,12 +30,24 @@ public class User {
     private String specialization;
     private String licenseId;
 
+    @Column(nullable = false, length = 32)
     private String approvalStatus = "PENDING";
+
+    @Column(nullable = false, length = 32)
     private String subscriptionPlan = "FREE";
 
     private String emergencyContact;
 
-    // ================= GETTERS & SETTERS =================
+    @PrePersist
+    @PreUpdate
+    private void applyDefaults() {
+        if (approvalStatus == null || approvalStatus.isBlank()) {
+            approvalStatus = "PENDING";
+        }
+        if (subscriptionPlan == null || subscriptionPlan.isBlank()) {
+            subscriptionPlan = "FREE";
+        }
+    }
 
     public Long getId() {
         return id;
@@ -53,10 +67,6 @@ public class User {
 
     public String getPassword() {
         return password;
-    }
-
-    public String getLicenseId() {
-        return licenseId;
     }
 
     public void setPassword(String password) {
@@ -117,6 +127,10 @@ public class User {
 
     public void setSpecialization(String specialization) {
         this.specialization = specialization;
+    }
+
+    public String getLicenseId() {
+        return licenseId;
     }
 
     public void setLicenseId(String licenseId) {
