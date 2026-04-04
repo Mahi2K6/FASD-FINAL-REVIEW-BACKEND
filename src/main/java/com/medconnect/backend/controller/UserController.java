@@ -1,8 +1,8 @@
 package com.medconnect.backend.controller;
 
-import com.medconnect.backend.model.User;
-import com.medconnect.backend.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.medconnect.backend.model.Role;
+import com.medconnect.backend.model.dto.UserResponse;
+import com.medconnect.backend.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,12 +12,14 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class UserController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserService userService;
 
-    // ✅ GET ALL DOCTORS (FIXED)
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
     @GetMapping("/doctors")
-    public List<User> getDoctors() {
-        return userRepository.findByRole("DOCTOR");
+    public List<UserResponse> getDoctors() {
+        return userService.findByRole(Role.DOCTOR);
     }
 }
