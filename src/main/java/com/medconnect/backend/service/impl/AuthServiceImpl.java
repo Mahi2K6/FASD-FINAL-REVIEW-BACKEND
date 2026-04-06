@@ -46,9 +46,6 @@ public class AuthServiceImpl implements AuthService {
         if (req.getRole() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role is required");
         }
-        if (req.getRole() == Role.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot self-register as ADMIN");
-        }
 
         String email = req.getEmail().trim().toLowerCase();
         if (userRepository.existsByEmail(email)) {
@@ -107,7 +104,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
 
-        if (user.getStatus() == UserStatus.REJECTED || user.getStatus() == UserStatus.SUSPENDED) {
+        if (user.getStatus() == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is not permitted to sign in");
         }
 
