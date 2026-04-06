@@ -45,8 +45,7 @@ public class AdminController {
         userService.deleteUser(id);
     }
 
-    @PutMapping("/users/{id}/status")
-    @PatchMapping("/users/{id}/status")
+    @RequestMapping(value = "/users/{id}/status", method = {RequestMethod.PUT, RequestMethod.PATCH})
     public ResponseEntity<?> updateUserStatus(
             @PathVariable Long id,
             @RequestBody StatusUpdateRequest request
