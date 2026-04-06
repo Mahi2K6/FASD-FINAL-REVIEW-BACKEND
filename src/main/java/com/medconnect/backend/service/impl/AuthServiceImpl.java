@@ -67,8 +67,8 @@ public class AuthServiceImpl implements AuthService {
 
         User user = new User();
         user.setName(req.getName().trim());
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(req.getPassword()));
+        user.setEmail(req.getEmail().trim().toLowerCase());
+        user.setPassword(passwordEncoder.encode(req.getPassword().trim()));
         user.setRole(req.getRole());
         user.setPhone(trimToNull(req.getPhone()));
         user.setSpecialization(trimToNull(req.getSpecialization()));
@@ -109,14 +109,15 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest req) {
         String email = req.getEmail().trim().toLowerCase();
-        User user = userRepository.findByEmail(email)
+        String password = req.getPassword() == null ? "" : req.getPassword().trim();
+        User user = userRepository.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
 
         if (user.getStatus() == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is not permitted to sign in");
         }
 
-        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         }
 
