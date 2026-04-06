@@ -41,6 +41,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest req) {
+        System.out.println("Register request: " + req);
+
         if (req.getRole() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role is required");
         }
@@ -87,7 +89,13 @@ public class AuthServiceImpl implements AuthService {
             user.setStatus(UserStatus.ACTIVE);
         }
 
-        user = userRepository.save(user);
+        try {
+            user = userRepository.save(user);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Registration failed: " + e.getMessage(), e);
+        }
+
         String token = jwtService.generateToken(user);
         return new AuthResponse(token, jwtProperties.getExpirationMs(), UserResponse.from(user));
     }
