@@ -52,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
 
         String email = req.getEmail().trim().toLowerCase();
         if (userRepository.existsByEmail(email)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already exists");
         }
 
         if (req.getRole() == Role.DOCTOR) {
@@ -93,11 +93,7 @@ public class AuthServiceImpl implements AuthService {
             user = userRepository.save(user);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Registration failed: " + e.getMessage(),
-                    e
-            );
+            throw new RuntimeException("Registration failed: " + e.getMessage(), e);
         }
 
         String token = jwtService.generateToken(user);
