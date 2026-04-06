@@ -14,8 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Optional one-time style bootstrap for an ADMIN user (dev/demo only).
- * Enable with: app.bootstrap-admin=true (and set app.bootstrap-admin-email / password).
+ * Bootstraps a default ADMIN account when enabled via app.bootstrap-admin=true.
  */
 @Component
 @Order(100)
@@ -33,14 +32,14 @@ public class AdminBootstrap implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        String email = System.getenv().getOrDefault("ADMIN_EMAIL", "admin@medconnect.local");
+        String email = "admin@medconnect.local";
         if (userRepository.existsByEmail(email)) {
             return;
         }
         User admin = new User();
         admin.setName("Administrator");
         admin.setEmail(email);
-        String raw = System.getenv().getOrDefault("ADMIN_PASSWORD", "ChangeMeAdmin123!");
+        String raw = "ChangeMeAdmin123!";
         admin.setPassword(passwordEncoder.encode(raw));
         admin.setRole(Role.ADMIN);
         admin.setStatus(UserStatus.ACTIVE);
