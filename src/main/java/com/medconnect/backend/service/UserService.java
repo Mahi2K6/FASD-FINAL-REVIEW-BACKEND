@@ -11,6 +11,10 @@ public interface UserService {
 
     List<UserResponse> findByRole(Role role);
 
+    List<UserResponse> findByRoleAndStatus(Role role, UserStatus status);
+
+    List<UserResponse> findByStatus(UserStatus status);
+
     long countByRole(Role role);
 
     UserResponse updateStatus(Long userId, UserStatus status);

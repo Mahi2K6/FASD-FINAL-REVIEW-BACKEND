@@ -30,6 +30,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<UserResponse> findByRoleAndStatus(Role role, UserStatus status) {
+        return userRepository.findByRoleAndStatus(role, status).stream().map(UserResponse::from).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserResponse> findByStatus(UserStatus status) {
+        return userRepository.findByStatus(status).stream().map(UserResponse::from).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public long countByRole(Role role) {
         return userRepository.countByRole(role);
     }

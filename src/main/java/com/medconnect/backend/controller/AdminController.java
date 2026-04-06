@@ -37,7 +37,17 @@ public class AdminController {
 
     @GetMapping("/users/{role}")
     public List<UserResponse> getUsersByRole(@PathVariable Role role) {
+        if (role == Role.DOCTOR) {
+            System.out.println("Fetching approved doctors...");
+            return userService.findByRoleAndStatus(Role.DOCTOR, UserStatus.ACTIVE);
+        }
         return userService.findByRole(role);
+    }
+
+    @GetMapping("/approvals/pending")
+    public List<UserResponse> getPendingApprovals() {
+        System.out.println("Fetching pending users...");
+        return userService.findByStatus(UserStatus.PENDING);
     }
 
     @DeleteMapping("/delete/{id}")
