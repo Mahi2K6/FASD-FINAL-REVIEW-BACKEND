@@ -41,6 +41,9 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest req) {
+        if (req.getRole() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role is required");
+        }
         if (req.getRole() == Role.ADMIN) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot self-register as ADMIN");
         }
@@ -65,12 +68,23 @@ public class AuthServiceImpl implements AuthService {
         user.setSpecialization(trimToNull(req.getSpecialization()));
         user.setExperience(req.getExperience());
         user.setEmergencyContact(trimToNull(req.getEmergencyContact()));
+
+        // Explicit defaults to avoid NULL inserts when frontend omits these fields.
         user.setProvider(AuthProvider.LOCAL);
+        user.setStatus(UserStatus.ACTIVE);
 
         if (req.getRole() == Role.PATIENT) {
             user.setStatus(UserStatus.ACTIVE);
         } else {
             user.setStatus(UserStatus.PENDING);
+        }
+
+        // Defensive fallback for NOT NULL columns.
+        if (user.getProvider() == null) {
+            user.setProvider(AuthProvider.LOCAL);
+        }
+        if (user.getStatus() == null) {
+            user.setStatus(UserStatus.ACTIVE);
         }
 
         user = userRepository.save(user);
