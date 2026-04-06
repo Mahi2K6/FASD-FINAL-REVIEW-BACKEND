@@ -49,4 +49,12 @@ public class AdminController {
     ) {
         return userService.updateStatus(userId, body.getStatus());
     }
+
+    @PatchMapping("/users/{id}/status")
+    public UserResponse patchUserStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody StatusUpdateRequest body
+    ) {
+        return userService.updateStatus(id, body.getStatus());
+    }
 }

@@ -4,6 +4,7 @@ import com.medconnect.backend.exception.ResourceNotFoundException;
 import com.medconnect.backend.model.Role;
 import com.medconnect.backend.model.User;
 import com.medconnect.backend.model.UserStatus;
+import com.medconnect.backend.model.dto.UpdateProfileRequest;
 import com.medconnect.backend.model.dto.UserResponse;
 import com.medconnect.backend.repository.UserRepository;
 import com.medconnect.backend.service.UserService;
@@ -49,5 +50,38 @@ public class UserServiceImpl implements UserService {
             throw new ResourceNotFoundException("User not found: " + id);
         }
         userRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserResponse getByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        return UserResponse.from(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateProfile(String email, UpdateProfileRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+
+        if (request.getName() != null) {
+            user.setName(request.getName().trim());
+        }
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone().trim());
+        }
+        if (request.getSpecialization() != null) {
+            user.setSpecialization(request.getSpecialization().trim());
+        }
+        if (request.getExperience() != null) {
+            user.setExperience(request.getExperience());
+        }
+        if (request.getEmergencyContact() != null) {
+            user.setEmergencyContact(request.getEmergencyContact().trim());
+        }
+
+        return UserResponse.from(userRepository.save(user));
     }
 }
