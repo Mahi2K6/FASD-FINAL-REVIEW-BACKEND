@@ -1,18 +1,14 @@
 package com.medconnect.backend.model.dto;
 
-import com.medconnect.backend.model.UserStatus;
-import jakarta.validation.constraints.NotNull;
-
 public class StatusUpdateRequest {
 
-    @NotNull
-    private UserStatus status;
+    private String status;
 
-    public UserStatus getStatus() {
+    public String getStatus() {
         return status;
     }
 
-    public void setStatus(UserStatus status) {
+    public void setStatus(String status) {
         this.status = status;
     }
 }

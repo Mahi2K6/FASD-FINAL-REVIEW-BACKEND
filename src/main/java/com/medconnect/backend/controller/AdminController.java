@@ -5,11 +5,14 @@ import com.medconnect.backend.model.UserStatus;
 import com.medconnect.backend.model.dto.StatusUpdateRequest;
 import com.medconnect.backend.model.dto.UserResponse;
 import com.medconnect.backend.service.UserService;
-import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @RestController
@@ -42,19 +45,22 @@ public class AdminController {
         userService.deleteUser(id);
     }
 
-    @PutMapping("/users/{userId}/status")
-    public UserResponse updateUserStatus(
-            @PathVariable Long userId,
-            @Valid @RequestBody StatusUpdateRequest body
-    ) {
-        return userService.updateStatus(userId, body.getStatus());
-    }
-
+    @PutMapping("/users/{id}/status")
     @PatchMapping("/users/{id}/status")
-    public UserResponse patchUserStatus(
+    public ResponseEntity<?> updateUserStatus(
             @PathVariable Long id,
-            @Valid @RequestBody StatusUpdateRequest body
+            @RequestBody StatusUpdateRequest request
     ) {
-        return userService.updateStatus(id, body.getStatus());
+        String rawStatus = request.getStatus();
+        if (rawStatus == null || rawStatus.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status is required");
+        }
+        UserStatus status;
+        try {
+            status = UserStatus.valueOf(rawStatus.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status value");
+        }
+        return ResponseEntity.ok(userService.updateStatus(id, status));
     }
 }
