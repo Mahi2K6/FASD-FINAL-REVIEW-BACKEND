@@ -93,7 +93,11 @@ public class AuthServiceImpl implements AuthService {
             user = userRepository.save(user);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Registration failed: " + e.getMessage(), e);
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Registration failed: " + e.getMessage(),
+                    e
+            );
         }
 
         String token = jwtService.generateToken(user);
