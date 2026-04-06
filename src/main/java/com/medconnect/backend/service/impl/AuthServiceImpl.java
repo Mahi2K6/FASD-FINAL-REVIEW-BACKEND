@@ -49,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest req) {
         System.out.println("Register request: " + req);
+        System.out.println("Registering user role: " + req.getRole());
 
         if (req.getRole() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role is required");
@@ -85,6 +86,7 @@ public class AuthServiceImpl implements AuthService {
         } else {
             user.setStatus(UserStatus.PENDING);
         }
+        System.out.println("Assigned status: " + user.getStatus());
 
         // Defensive fallback for NOT NULL columns.
         if (user.getProvider() == null) {
