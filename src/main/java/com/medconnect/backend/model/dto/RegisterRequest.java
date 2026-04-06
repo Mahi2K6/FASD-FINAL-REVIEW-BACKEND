@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.springframework.web.multipart.MultipartFile;
 
 public class RegisterRequest {
 
@@ -29,10 +30,12 @@ public class RegisterRequest {
     @Size(max = 200)
     private String specialization;
 
-    private Integer experience;
+    private String experience;
 
     @Size(max = 255)
     private String emergencyContact;
+
+    private MultipartFile idCard;
 
     public String getName() {
         return name;
@@ -82,11 +85,11 @@ public class RegisterRequest {
         this.specialization = specialization;
     }
 
-    public Integer getExperience() {
+    public String getExperience() {
         return experience;
     }
 
-    public void setExperience(Integer experience) {
+    public void setExperience(String experience) {
         this.experience = experience;
     }
 
@@ -96,5 +99,13 @@ public class RegisterRequest {
 
     public void setEmergencyContact(String emergencyContact) {
         this.emergencyContact = emergencyContact;
+    }
+
+    public MultipartFile getIdCard() {
+        return idCard;
+    }
+
+    public void setIdCard(MultipartFile idCard) {
+        this.idCard = idCard;
     }
 }

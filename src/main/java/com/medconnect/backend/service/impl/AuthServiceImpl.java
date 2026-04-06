@@ -16,7 +16,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -65,8 +72,9 @@ public class AuthServiceImpl implements AuthService {
         user.setRole(req.getRole());
         user.setPhone(trimToNull(req.getPhone()));
         user.setSpecialization(trimToNull(req.getSpecialization()));
-        user.setExperience(req.getExperience());
+        user.setExperience(parseExperience(req.getExperience()));
         user.setEmergencyContact(trimToNull(req.getEmergencyContact()));
+        user.setIdCardPath(saveIdCard(req.getIdCard()));
 
         // Explicit defaults to avoid NULL inserts when frontend omits these fields.
         user.setProvider(AuthProvider.LOCAL);
@@ -122,5 +130,39 @@ public class AuthServiceImpl implements AuthService {
         }
         String t = s.trim();
         return t.isEmpty() ? null : t;
+    }
+
+    private static Integer parseExperience(String raw) {
+        String value = trimToNull(raw);
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Experience must be a number");
+        }
+    }
+
+    private static String saveIdCard(MultipartFile idCard) {
+        if (idCard == null || idCard.isEmpty()) {
+            return null;
+        }
+        String original = idCard.getOriginalFilename();
+        String extension = "";
+        if (original != null) {
+            int dot = original.lastIndexOf('.');
+            if (dot >= 0) {
+                extension = original.substring(dot);
+            }
+        }
+        String fileName = UUID.randomUUID() + extension;
+        Path target = Path.of("uploads", "id-cards", fileName);
+        try {
+            Files.copy(idCard.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to store ID card", ex);
+        }
+        return target.toString().replace('\\', '/');
     }
 }

@@ -44,6 +44,9 @@ public class User {
     @Column(length = 255)
     private String emergencyContact;
 
+    @Column(length = 500)
+    private String idCardPath;
+
     @PrePersist
     @PreUpdate
     void applyDefaults() {
@@ -141,5 +144,13 @@ public class User {
 
     public void setEmergencyContact(String emergencyContact) {
         this.emergencyContact = emergencyContact;
+    }
+
+    public String getIdCardPath() {
+        return idCardPath;
+    }
+
+    public void setIdCardPath(String idCardPath) {
+        this.idCardPath = idCardPath;
     }
 }

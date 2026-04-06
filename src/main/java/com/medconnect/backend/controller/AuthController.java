@@ -6,6 +6,7 @@ import com.medconnect.backend.model.dto.RegisterRequest;
 import com.medconnect.backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,8 +31,14 @@ public class AuthController {
         return ResponseEntity.ok(HEALTH_MESSAGE);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+    @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> register(@Valid @ModelAttribute RegisterRequest request) {
+        AuthResponse body = authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
+    }
+
+    @PostMapping(value = "/register", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> registerJson(@Valid @RequestBody RegisterRequest request) {
         AuthResponse body = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
