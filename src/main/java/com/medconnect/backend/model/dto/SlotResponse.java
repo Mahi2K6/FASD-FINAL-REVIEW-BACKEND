@@ -13,16 +13,18 @@ public class SlotResponse {
     private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;
+    private boolean isBooked;
 
     public SlotResponse() {
     }
 
-    public SlotResponse(Long id, Long doctorId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+    public SlotResponse(Long id, Long doctorId, LocalDate date, LocalTime startTime, LocalTime endTime, boolean isBooked) {
         this.id = id;
         this.doctorId = doctorId;
         this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.isBooked = isBooked;
     }
 
     public Long getId() {
@@ -63,5 +65,13 @@ public class SlotResponse {
 
     public void setEndTime(LocalTime endTime) {
         this.endTime = endTime;
+    }
+
+    public boolean isBooked() {
+        return isBooked;
+    }
+
+    public void setBooked(boolean booked) {
+        isBooked = booked;
     }
 }

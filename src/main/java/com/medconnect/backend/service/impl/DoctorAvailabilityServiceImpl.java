@@ -4,6 +4,8 @@ import com.medconnect.backend.model.DoctorAvailability;
 import com.medconnect.backend.model.dto.SlotResponse;
 import com.medconnect.backend.repository.DoctorAvailabilityRepository;
 import com.medconnect.backend.service.DoctorAvailabilityService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,7 @@ import java.util.List;
 
 @Service
 public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService {
+    private static final Logger log = LoggerFactory.getLogger(DoctorAvailabilityServiceImpl.class);
 
     private static final LocalTime WORK_DAY_START = LocalTime.of(10, 0);
     private static final LocalTime WORK_DAY_END = LocalTime.of(18, 0);
@@ -57,6 +60,7 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
         LocalTime now = LocalTime.now(zone);
 
         if (date.isBefore(today)) {
+            log.info("Slots returned: {}", 0);
             return Collections.emptyList();
         }
 
@@ -76,9 +80,11 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
                     s.getDoctorId(),
                     s.getSlotDate(),
                     s.getStartTime(),
-                    s.getEndTime()
+                    s.getEndTime(),
+                    s.isBooked()
             ));
         }
+        log.info("Slots returned: {}", result.size());
         return result;
     }
 }
