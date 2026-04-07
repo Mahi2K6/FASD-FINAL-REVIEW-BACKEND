@@ -51,10 +51,14 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private Appointment bookWithSlot(Appointment appointment) {
-        DoctorAvailability slot = doctorAvailabilityRepository.findByIdForUpdate(appointment.getSlotId())
+        Long slotId = appointment.getSlotId();
+        DoctorAvailability slot = doctorAvailabilityRepository.findByIdForUpdate(slotId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid slotId"));
 
         if (slot.isBooked()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Slot already booked");
+        }
+        if (appointmentRepository.existsBySlotId(slotId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Slot already booked");
         }
         ZoneId zone = ZoneId.systemDefault();
@@ -75,10 +79,9 @@ public class AppointmentServiceImpl implements AppointmentService {
             appointment.setPaymentStatus(PaymentStatus.PENDING);
         }
 
+        Appointment saved = appointmentRepository.save(appointment);
         slot.setBooked(true);
         doctorAvailabilityRepository.save(slot);
-
-        Appointment saved = appointmentRepository.save(appointment);
         notifyDoctorNewAppointment(saved);
         return saved;
     }

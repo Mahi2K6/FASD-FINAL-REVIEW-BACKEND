@@ -18,6 +18,9 @@ public interface DoctorAvailabilityRepository extends JpaRepository<DoctorAvaila
 
     List<DoctorAvailability> findByDoctorIdAndSlotDateOrderByStartTimeAsc(Long doctorId, LocalDate slotDate);
 
+    @Query("SELECT s FROM DoctorAvailability s WHERE s.doctorId = :doctorId AND s.slotDate = :slotDate AND s.booked = false ORDER BY s.startTime ASC")
+    List<DoctorAvailability> findAvailableSlots(@Param("doctorId") Long doctorId, @Param("slotDate") LocalDate slotDate);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM DoctorAvailability s WHERE s.id = :id")
     Optional<DoctorAvailability> findByIdForUpdate(@Param("id") Long id);

@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -51,23 +52,25 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
     @Override
     @Transactional
     public List<SlotResponse> getAvailableSlots(Long doctorId, LocalDate date) {
-        generateSlots(doctorId, date);
-
         ZoneId zone = ZoneId.systemDefault();
         LocalDate today = LocalDate.now(zone);
         LocalTime now = LocalTime.now(zone);
 
-        List<DoctorAvailability> rows = doctorAvailabilityRepository
-                .findByDoctorIdAndSlotDateOrderByStartTimeAsc(doctorId, date);
+        if (date.isBefore(today)) {
+            return Collections.emptyList();
+        }
+
+        generateSlots(doctorId, date);
+
+        List<DoctorAvailability> rows = doctorAvailabilityRepository.findAvailableSlots(doctorId, date);
+        if (date.equals(today)) {
+            rows = rows.stream()
+                    .filter(slot -> slot.getStartTime().isAfter(now))
+                    .toList();
+        }
 
         List<SlotResponse> result = new ArrayList<>();
         for (DoctorAvailability s : rows) {
-            if (s.isBooked()) {
-                continue;
-            }
-            if (isExpired(date, s.getStartTime(), today, now)) {
-                continue;
-            }
             result.add(new SlotResponse(
                     s.getId(),
                     s.getDoctorId(),
@@ -77,15 +80,5 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
             ));
         }
         return result;
-    }
-
-    private static boolean isExpired(LocalDate slotDate, LocalTime startTime, LocalDate today, LocalTime now) {
-        if (slotDate.isBefore(today)) {
-            return true;
-        }
-        if (slotDate.isAfter(today)) {
-            return false;
-        }
-        return startTime.isBefore(now);
     }
 }
