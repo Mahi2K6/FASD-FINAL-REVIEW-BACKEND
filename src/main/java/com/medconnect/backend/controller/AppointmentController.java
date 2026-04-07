@@ -3,6 +3,7 @@ package com.medconnect.backend.controller;
 import com.medconnect.backend.model.Appointment;
 import com.medconnect.backend.model.Role;
 import com.medconnect.backend.model.User;
+import com.medconnect.backend.model.dto.AppointmentResponse;
 import com.medconnect.backend.repository.UserRepository;
 import com.medconnect.backend.service.AppointmentService;
 import com.medconnect.backend.exception.ResourceNotFoundException;
@@ -55,12 +56,26 @@ public class AppointmentController {
     }
 
     @GetMapping("/my")
-    public List<Appointment> myAppointments(Principal principal) {
+    public List<AppointmentResponse> myAppointments(Principal principal) {
         User user = userRepository.findByEmail(principal.getName().trim().toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal.getName()));
-        if (user.getRole() == Role.DOCTOR) {
-            return appointmentService.findByDoctorId(user.getId());
-        }
-        return appointmentService.findByPatientId(user.getId());
+        List<Appointment> list = user.getRole() == Role.DOCTOR
+                ? appointmentService.findByDoctorId(user.getId())
+                : appointmentService.findByPatientId(user.getId());
+        return list.stream().map(a -> {
+            User doctor = a.getDoctorId() != null
+                    ? userRepository.findById(a.getDoctorId()).orElse(null)
+                    : null;
+            return new AppointmentResponse(
+                    a.getId(),
+                    a.getDoctorId(),
+                    doctor != null ? doctor.getName() : null,
+                    doctor != null ? doctor.getSpecialization() : null,
+                    a.getAppointmentDate(),
+                    a.getStartTime(),
+                    a.getEndTime(),
+                    a.getStatus()
+            );
+        }).toList();
     }
 }
