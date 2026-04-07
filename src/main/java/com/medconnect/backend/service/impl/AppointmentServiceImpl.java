@@ -1,6 +1,7 @@
 package com.medconnect.backend.service.impl;
 
 import com.medconnect.backend.exception.ResourceNotFoundException;
+import com.medconnect.backend.exception.SlotAlreadyBookedException;
 import com.medconnect.backend.model.Appointment;
 import com.medconnect.backend.model.DoctorAvailability;
 import com.medconnect.backend.model.PaymentStatus;
@@ -56,6 +57,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         if (slot.isBooked()) {
             throw new RuntimeException("Slot already booked");
+        }
+        if (appointmentRepository.existsBySlotId(slotId)) {
+            throw new SlotAlreadyBookedException("This slot has already been booked.");
         }
         ZoneId zone = ZoneId.systemDefault();
         if (isSlotExpired(slot, zone)) {

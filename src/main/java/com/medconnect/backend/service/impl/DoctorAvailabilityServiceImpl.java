@@ -2,6 +2,7 @@ package com.medconnect.backend.service.impl;
 
 import com.medconnect.backend.model.DoctorAvailability;
 import com.medconnect.backend.model.dto.SlotResponse;
+import com.medconnect.backend.repository.AppointmentRepository;
 import com.medconnect.backend.repository.DoctorAvailabilityRepository;
 import com.medconnect.backend.service.DoctorAvailabilityService;
 import org.slf4j.Logger;
@@ -25,9 +26,14 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
     private static final int SLOT_MINUTES = 30;
 
     private final DoctorAvailabilityRepository doctorAvailabilityRepository;
+    private final AppointmentRepository appointmentRepository;
 
-    public DoctorAvailabilityServiceImpl(DoctorAvailabilityRepository doctorAvailabilityRepository) {
+    public DoctorAvailabilityServiceImpl(
+            DoctorAvailabilityRepository doctorAvailabilityRepository,
+            AppointmentRepository appointmentRepository
+    ) {
         this.doctorAvailabilityRepository = doctorAvailabilityRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     @Override
@@ -67,6 +73,9 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
         generateSlots(doctorId, date);
 
         List<DoctorAvailability> rows = doctorAvailabilityRepository.findAvailableSlots(doctorId, date);
+        rows = rows.stream()
+                .filter(slot -> !appointmentRepository.existsBySlotId(slot.getId()))
+                .toList();
         if (date.equals(today)) {
             rows = rows.stream()
                     .filter(slot -> slot.getStartTime().isAfter(now))
