@@ -1,7 +1,7 @@
 package com.medconnect.backend.service.impl;
 
 import com.medconnect.backend.model.DoctorAvailability;
-import com.medconnect.backend.model.dto.SlotResponse;
+import com.medconnect.backend.model.dto.SlotResponseDTO;
 import com.medconnect.backend.repository.AppointmentRepository;
 import com.medconnect.backend.repository.DoctorAvailabilityRepository;
 import com.medconnect.backend.service.DoctorAvailabilityService;
@@ -60,7 +60,7 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
 
     @Override
     @Transactional
-    public List<SlotResponse> getAvailableSlots(Long doctorId, LocalDate date) {
+    public List<SlotResponseDTO> getAvailableSlots(Long doctorId, LocalDate date) {
         ZoneId zone = ZoneId.systemDefault();
         LocalDate today = LocalDate.now(zone);
         LocalTime now = LocalTime.now(zone);
@@ -72,25 +72,21 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
 
         generateSlots(doctorId, date);
 
-        List<DoctorAvailability> rows = doctorAvailabilityRepository.findAvailableSlots(doctorId, date);
-        rows = rows.stream()
-                .filter(slot -> !appointmentRepository.existsBySlotId(slot.getId()))
-                .toList();
+        List<DoctorAvailability> rows = doctorAvailabilityRepository.findByDoctorIdAndSlotDateOrderByStartTimeAsc(doctorId, date);
         if (date.equals(today)) {
             rows = rows.stream()
                     .filter(slot -> slot.getStartTime().isAfter(now))
                     .toList();
         }
 
-        List<SlotResponse> result = new ArrayList<>();
+        List<SlotResponseDTO> result = new ArrayList<>();
         for (DoctorAvailability s : rows) {
-            result.add(new SlotResponse(
+            boolean isBooked = s.isBooked() || appointmentRepository.existsBySlotId(s.getId());
+            result.add(new SlotResponseDTO(
                     s.getId(),
-                    s.getDoctorId(),
-                    s.getSlotDate(),
                     s.getStartTime(),
                     s.getEndTime(),
-                    s.isBooked()
+                    !isBooked
             ));
         }
         log.info("Slots returned: {}", result.size());
