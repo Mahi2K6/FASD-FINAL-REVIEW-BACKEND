@@ -16,6 +16,8 @@ public class Appointment {
     private Date appointmentDate;
     
     private String problemDescription;
+    @Transient
+    private String reason;
     private String status; // "PENDING", "CONFIRMED", "CANCELLED", "COMPLETED"
     private String meetingLink;
 
@@ -40,8 +42,10 @@ public class Appointment {
     public Date getAppointmentDate() { return appointmentDate; }
     public void setAppointmentDate(Date appointmentDate) { this.appointmentDate = appointmentDate; }
 
-    public String getProblemDescription() { return problemDescription; }
+    public String getProblemDescription() { return problemDescription != null ? problemDescription : reason; }
     public void setProblemDescription(String problemDescription) { this.problemDescription = problemDescription; }
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
