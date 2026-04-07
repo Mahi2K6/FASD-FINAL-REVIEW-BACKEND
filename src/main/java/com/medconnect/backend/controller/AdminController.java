@@ -1,9 +1,12 @@
 package com.medconnect.backend.controller;
 
 import com.medconnect.backend.model.Role;
+import com.medconnect.backend.model.User;
 import com.medconnect.backend.model.UserStatus;
 import com.medconnect.backend.model.dto.StatusUpdateRequest;
 import com.medconnect.backend.model.dto.UserResponse;
+import com.medconnect.backend.repository.AppointmentRepository;
+import com.medconnect.backend.repository.UserRepository;
 import com.medconnect.backend.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,21 +24,54 @@ import java.util.Map;
 public class AdminController {
 
     private final UserService userService;
+    private final UserRepository userRepository;
+    private final AppointmentRepository appointmentRepository;
 
-    public AdminController(UserService userService) {
+    public AdminController(
+            UserService userService,
+            UserRepository userRepository,
+            AppointmentRepository appointmentRepository
+    ) {
         this.userService = userService;
+        this.userRepository = userRepository;
+        this.appointmentRepository = appointmentRepository;
     }
 
     @GetMapping("/stats")
-    public Map<String, Long> getStats() {
-        Map<String, Long> stats = new HashMap<>();
-        stats.put("DOCTOR", userService.countByRole(Role.DOCTOR));
-        stats.put("PATIENT", userService.countByRole(Role.PATIENT));
-        stats.put("PHARMACIST", userService.countByRole(Role.PHARMACIST));
-        return stats;
+    public ResponseEntity<?> getStats() {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalUsers", userRepository.count());
+        stats.put("totalDoctors", userRepository.countByRole(Role.DOCTOR));
+        stats.put("totalPatients", userRepository.countByRole(Role.PATIENT));
+        stats.put("totalAppointments", appointmentRepository.count());
+        stats.put("totalPharmacists", userRepository.countByRole(Role.PHARMACIST));
+        stats.put("pendingApprovals", userRepository.countByStatus(UserStatus.PENDING));
+        return ResponseEntity.ok(stats);
     }
 
-    @GetMapping("/users/{role}")
+    @GetMapping("/users/{filter}")
+    public ResponseEntity<?> getUsersByFilter(@PathVariable String filter) {
+        List<User> users;
+        if (filter.equalsIgnoreCase("PENDING")) {
+            System.out.println("Fetching pending users...");
+            users = userRepository.findByStatus(UserStatus.PENDING);
+        } else {
+            try {
+                Role role = Role.valueOf(filter.toUpperCase(Locale.ROOT));
+                if (role == Role.DOCTOR) {
+                    System.out.println("Fetching approved doctors...");
+                    users = userRepository.findByRoleAndStatus(Role.DOCTOR, UserStatus.ACTIVE);
+                } else {
+                    users = userRepository.findByRole(role);
+                }
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().body("Invalid filter: " + filter);
+            }
+        }
+        return ResponseEntity.ok(users.stream().map(UserResponse::from).toList());
+    }
+
+    @GetMapping("/users/{role}/raw")
     public List<UserResponse> getUsersByRole(@PathVariable Role role) {
         if (role == Role.DOCTOR) {
             System.out.println("Fetching approved doctors...");
