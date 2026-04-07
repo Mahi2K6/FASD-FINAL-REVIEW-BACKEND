@@ -42,12 +42,13 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Appointment book(Appointment appointment) {
-        if (appointment.getSlotId() != null) {
-            return bookWithSlot(appointment);
+        System.out.println("Booking request slotId = " + appointment.getSlotId());
+        if (appointment.getSlotId() == null) {
+            throw new RuntimeException("slotId is required");
         }
-        return bookLegacy(appointment);
+        return bookWithSlot(appointment);
     }
 
     private Appointment bookWithSlot(Appointment appointment) {
@@ -56,9 +57,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid slotId"));
 
         if (slot.isBooked()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Slot already booked");
-        }
-        if (appointmentRepository.existsBySlotId(slotId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Slot already booked");
         }
         ZoneId zone = ZoneId.systemDefault();
@@ -71,7 +69,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         // Mark the slot first inside the same transaction to reduce race windows.
         slot.setBooked(true);
-        doctorAvailabilityRepository.save(slot);
+        doctorAvailabilityRepository.saveAndFlush(slot);
 
         appointment.setSlotId(slotId);
         appointment.setDoctorId(slot.getDoctorId());
@@ -84,18 +82,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             appointment.setPaymentStatus(PaymentStatus.PENDING);
         }
 
-        Appointment saved = appointmentRepository.save(appointment);
-        notifyDoctorNewAppointment(saved);
-        return saved;
-    }
-
-    private Appointment bookLegacy(Appointment appointment) {
-        appointment.setProblemDescription(appointment.getProblemDescription());
-        appointment.setStatus("PENDING");
-        if (appointment.getPaymentStatus() == null) {
-            appointment.setPaymentStatus(PaymentStatus.PENDING);
-        }
-        Appointment saved = appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.saveAndFlush(appointment);
         notifyDoctorNewAppointment(saved);
         return saved;
     }
