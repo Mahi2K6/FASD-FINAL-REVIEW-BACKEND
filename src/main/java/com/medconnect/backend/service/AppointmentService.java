@@ -1,6 +1,7 @@
 package com.medconnect.backend.service;
 
 import com.medconnect.backend.model.Appointment;
+import com.medconnect.backend.model.dto.AppointmentResponseDTO;
 
 import java.util.List;
 
@@ -10,7 +11,9 @@ public interface AppointmentService {
 
     List<Appointment> findByDoctorId(Long doctorId);
 
-    List<Appointment> findByPatientId(Long patientId);
+    List<AppointmentResponseDTO> findByPatientId(Long patientId);
+
+    List<AppointmentResponseDTO> findByDoctorIdEnriched(Long doctorId);
 
     Appointment updateStatus(Long id, String status);
 

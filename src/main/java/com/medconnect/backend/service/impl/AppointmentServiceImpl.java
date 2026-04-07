@@ -6,6 +6,7 @@ import com.medconnect.backend.model.Appointment;
 import com.medconnect.backend.model.DoctorAvailability;
 import com.medconnect.backend.model.PaymentStatus;
 import com.medconnect.backend.model.User;
+import com.medconnect.backend.model.dto.AppointmentResponseDTO;
 import com.medconnect.backend.repository.AppointmentRepository;
 import com.medconnect.backend.repository.DoctorAvailabilityRepository;
 import com.medconnect.backend.repository.UserRepository;
@@ -17,11 +18,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 
 @Service
 public class AppointmentServiceImpl implements AppointmentService {
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
@@ -131,8 +134,16 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Appointment> findByPatientId(Long patientId) {
-        return appointmentRepository.findByPatientIdOrderByAppointmentDateDescIdDesc(patientId);
+    public List<AppointmentResponseDTO> findByPatientId(Long patientId) {
+        List<Appointment> appointments = appointmentRepository.findByPatientIdOrderByAppointmentDateDescIdDesc(patientId);
+        return mapToAppointmentResponse(appointments);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AppointmentResponseDTO> findByDoctorIdEnriched(Long doctorId) {
+        List<Appointment> appointments = appointmentRepository.findByDoctorIdOrderByAppointmentDateDescIdDesc(doctorId);
+        return mapToAppointmentResponse(appointments);
     }
 
     @Override
@@ -161,5 +172,32 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment not found: " + appointmentId));
         a.setPaymentStatus(PaymentStatus.PAID);
         return appointmentRepository.save(a);
+    }
+
+    private List<AppointmentResponseDTO> mapToAppointmentResponse(List<Appointment> appointments) {
+        ZoneId zone = ZoneId.systemDefault();
+        return appointments.stream().map(appointment -> {
+            User doctor = appointment.getDoctorId() != null
+                    ? userRepository.findById(appointment.getDoctorId()).orElse(null)
+                    : null;
+            String formattedDate = appointment.getAppointmentDate() == null
+                    ? null
+                    : appointment.getAppointmentDate().toInstant().atZone(zone).toLocalDate().format(DATE_FORMAT);
+            String paymentStatus = appointment.getPaymentStatus() == null ? null : appointment.getPaymentStatus().name();
+            return new AppointmentResponseDTO(
+                    appointment.getId(),
+                    appointment.getPatientId(),
+                    appointment.getDoctorId(),
+                    doctor != null ? doctor.getName() : null,
+                    doctor != null ? doctor.getSpecialization() : null,
+                    formattedDate,
+                    appointment.getStartTime(),
+                    appointment.getEndTime(),
+                    appointment.getStatus(),
+                    appointment.getProblemDescription(),
+                    paymentStatus,
+                    appointment.getMeetingLink()
+            );
+        }).toList();
     }
 }
