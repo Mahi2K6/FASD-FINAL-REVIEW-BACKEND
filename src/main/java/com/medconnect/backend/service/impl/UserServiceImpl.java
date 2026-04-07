@@ -6,9 +6,14 @@ import com.medconnect.backend.model.User;
 import com.medconnect.backend.model.UserStatus;
 import com.medconnect.backend.model.dto.UpdateProfileRequest;
 import com.medconnect.backend.model.dto.UserResponse;
+import com.medconnect.backend.repository.AppointmentRepository;
+import com.medconnect.backend.repository.HealthMetricRepository;
+import com.medconnect.backend.repository.NotificationRepository;
+import com.medconnect.backend.repository.PrescriptionRepository;
 import com.medconnect.backend.repository.UserRepository;
 import com.medconnect.backend.service.NotificationService;
 import com.medconnect.backend.service.UserService;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +24,25 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final AppointmentRepository appointmentRepository;
+    private final PrescriptionRepository prescriptionRepository;
+    private final NotificationRepository notificationRepository;
+    private final HealthMetricRepository healthMetricRepository;
 
-    public UserServiceImpl(UserRepository userRepository, NotificationService notificationService) {
+    public UserServiceImpl(
+            UserRepository userRepository,
+            NotificationService notificationService,
+            AppointmentRepository appointmentRepository,
+            PrescriptionRepository prescriptionRepository,
+            NotificationRepository notificationRepository,
+            HealthMetricRepository healthMetricRepository
+    ) {
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.appointmentRepository = appointmentRepository;
+        this.prescriptionRepository = prescriptionRepository;
+        this.notificationRepository = notificationRepository;
+        this.healthMetricRepository = healthMetricRepository;
     }
 
     @Override
@@ -79,6 +99,24 @@ public class UserServiceImpl implements UserService {
             throw new ResourceNotFoundException("User not found: " + id);
         }
         userRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public User deleteUserByAdmin(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (user.getRole() == Role.ADMIN) {
+            throw new AccessDeniedException("Cannot delete admin");
+        }
+        appointmentRepository.deleteByPatientId(user.getId());
+        appointmentRepository.deleteByDoctorId(user.getId());
+        prescriptionRepository.deleteByPatientId(user.getId());
+        prescriptionRepository.deleteByDoctorId(user.getId());
+        healthMetricRepository.deleteByPatientId(user.getId());
+        notificationRepository.deleteByUserId(user.getId());
+        userRepository.delete(user);
+        return user;
     }
 
     @Override
