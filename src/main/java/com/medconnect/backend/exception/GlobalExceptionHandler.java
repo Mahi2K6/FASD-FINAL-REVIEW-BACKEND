@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest req) {
-        return build(HttpStatus.CONFLICT, "Conflict", "Data conflict: duplicate or invalid reference", req);
+        return build(HttpStatus.CONFLICT, "Conflict", "Slot already booked", req);
     }
 
     @ExceptionHandler({BadCredentialsException.class, AccessDeniedException.class})
