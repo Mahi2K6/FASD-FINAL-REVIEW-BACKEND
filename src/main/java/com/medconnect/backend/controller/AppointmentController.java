@@ -7,10 +7,14 @@ import com.medconnect.backend.model.dto.AppointmentResponse;
 import com.medconnect.backend.repository.UserRepository;
 import com.medconnect.backend.service.AppointmentService;
 import com.medconnect.backend.exception.ResourceNotFoundException;
+import com.medconnect.backend.exception.SlotAlreadyBookedException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/appointments")
@@ -26,13 +30,21 @@ public class AppointmentController {
     }
 
     @PostMapping("/book")
-    public Appointment bookAppointment(@RequestBody Appointment appointment) {
-        return appointmentService.book(appointment);
+    public ResponseEntity<?> bookAppointment(@RequestBody Appointment appointment) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(appointmentService.book(appointment));
+        } catch (SlotAlreadyBookedException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Slot already booked"));
+        }
     }
 
     @PostMapping
-    public Appointment createAppointment(@RequestBody Appointment appointment) {
-        return appointmentService.book(appointment);
+    public ResponseEntity<?> createAppointment(@RequestBody Appointment appointment) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(appointmentService.book(appointment));
+        } catch (SlotAlreadyBookedException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Slot already booked"));
+        }
     }
 
     @GetMapping("/doctor/{doctorId}")
