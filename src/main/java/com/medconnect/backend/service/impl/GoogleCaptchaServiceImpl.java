@@ -2,12 +2,10 @@ package com.medconnect.backend.service.impl;
 
 import com.medconnect.backend.service.CaptchaService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
@@ -34,7 +32,7 @@ public class GoogleCaptchaServiceImpl implements CaptchaService {
             return false;
         }
         if (secretKey == null || secretKey.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Captcha secret is not configured");
+            return false;
         }
 
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
