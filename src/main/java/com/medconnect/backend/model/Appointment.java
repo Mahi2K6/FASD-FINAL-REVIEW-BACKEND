@@ -1,6 +1,7 @@
 package com.medconnect.backend.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Entity
@@ -13,6 +14,11 @@ public class Appointment {
 
     private Long patientId;
     private Long doctorId;
+
+    /** Populated when booking via slot-based flow; optional for legacy bookings. */
+    @Column(name = "slot_id")
+    private Long slotId;
+
     private Date appointmentDate;
     
     private String problemDescription;
@@ -28,6 +34,13 @@ public class Appointment {
     @Column(length = 2000)
     private String callSummary; // Notes written by doctor after the call
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", length = 16)
+    private PaymentStatus paymentStatus;
+
+    @Column(name = "amount", precision = 10, scale = 2)
+    private BigDecimal amount;
+
     // --- GETTERS AND SETTERS ---
 
     public Long getId() { return id; }
@@ -38,6 +51,9 @@ public class Appointment {
 
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
+
+    public Long getSlotId() { return slotId; }
+    public void setSlotId(Long slotId) { this.slotId = slotId; }
 
     public Date getAppointmentDate() { return appointmentDate; }
     public void setAppointmentDate(Date appointmentDate) { this.appointmentDate = appointmentDate; }
@@ -61,4 +77,10 @@ public class Appointment {
 
     public String getCallSummary() { return callSummary; }
     public void setCallSummary(String callSummary) { this.callSummary = callSummary; }
+
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public BigDecimal getAmount() { return amount; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
 }

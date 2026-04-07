@@ -15,4 +15,7 @@ public interface AppointmentService {
     Appointment updateStatus(Long id, String status);
 
     Appointment saveCallSummary(Long id, String summary);
+
+    /** Mock payment: marks payment as PAID. */
+    Appointment markPaymentPaid(Long appointmentId);
 }
