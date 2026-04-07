@@ -17,7 +17,7 @@ public class Prescription {
     @Column(length = 1000) // Allow long text for medicines
     private String medicines; 
     
-    private String status; // "PENDING" or "DISPENSED"
+    private String status; // "ACTIVE" or "COMPLETED"
 
     // Getters and Setters
     public Long getId() { return id; }

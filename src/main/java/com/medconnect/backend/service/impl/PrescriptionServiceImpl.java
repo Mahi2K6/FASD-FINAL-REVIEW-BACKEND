@@ -27,7 +27,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     @Override
     @Transactional
     public Prescription add(Prescription prescription) {
-        prescription.setStatus("PENDING");
+        prescription.setStatus("ACTIVE");
         return prescriptionRepository.save(prescription);
     }
 
@@ -40,7 +40,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     @Override
     @Transactional(readOnly = true)
     public List<Prescription> findPending() {
-        return prescriptionRepository.findByStatus("PENDING");
+        return prescriptionRepository.findByStatus("ACTIVE");
     }
 
     @Override
@@ -48,7 +48,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     public Prescription dispense(Long id) {
         Prescription p = prescriptionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Prescription not found: " + id));
-        p.setStatus("DISPENSED");
+        p.setStatus("COMPLETED");
         Prescription saved = prescriptionRepository.save(p);
         notificationService.createNotification(
                 saved.getPatientId(),

@@ -37,6 +37,8 @@ public class RegisterRequest {
 
     private MultipartFile idCard;
 
+    private String captchaToken;
+
     public String getName() {
         return name;
     }
@@ -107,5 +109,13 @@ public class RegisterRequest {
 
     public void setIdCard(MultipartFile idCard) {
         this.idCard = idCard;
+    }
+
+    public String getCaptchaToken() {
+        return captchaToken;
+    }
+
+    public void setCaptchaToken(String captchaToken) {
+        this.captchaToken = captchaToken;
     }
 }

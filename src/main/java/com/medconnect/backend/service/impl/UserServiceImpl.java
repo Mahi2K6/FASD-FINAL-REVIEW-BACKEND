@@ -113,4 +113,13 @@ public class UserServiceImpl implements UserService {
 
         return UserResponse.from(userRepository.save(user));
     }
+
+    @Override
+    @Transactional
+    public UserResponse updateProfileImage(String email, String profileImageUrl) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        user.setProfileImageUrl(profileImageUrl);
+        return UserResponse.from(userRepository.save(user));
+    }
 }

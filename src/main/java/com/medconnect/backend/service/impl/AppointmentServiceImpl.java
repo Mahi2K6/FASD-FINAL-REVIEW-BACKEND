@@ -131,13 +131,13 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional(readOnly = true)
     public List<Appointment> findByDoctorId(Long doctorId) {
-        return appointmentRepository.findByDoctorId(doctorId);
+        return appointmentRepository.findByDoctorIdOrderByAppointmentDateDescIdDesc(doctorId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Appointment> findByPatientId(Long patientId) {
-        return appointmentRepository.findByPatientId(patientId);
+        return appointmentRepository.findByPatientIdOrderByAppointmentDateDescIdDesc(patientId);
     }
 
     @Override

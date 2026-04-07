@@ -47,6 +47,9 @@ public class User {
     @Column(length = 500)
     private String idCardPath;
 
+    @Column(length = 500)
+    private String profileImageUrl;
+
     @PrePersist
     @PreUpdate
     void applyDefaults() {
@@ -152,5 +155,13 @@ public class User {
 
     public void setIdCardPath(String idCardPath) {
         this.idCardPath = idCardPath;
+    }
+
+    public String getProfileImageUrl() {
+        return profileImageUrl;
+    }
+
+    public void setProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
     }
 }

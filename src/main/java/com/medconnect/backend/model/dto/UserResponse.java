@@ -16,6 +16,7 @@ public class UserResponse {
     private Integer experience;
     private AuthProvider provider;
     private String emergencyContact;
+    private String profileImageUrl;
 
     public static UserResponse from(com.medconnect.backend.model.User user) {
         UserResponse r = new UserResponse();
@@ -29,6 +30,7 @@ public class UserResponse {
         r.setExperience(user.getExperience());
         r.setProvider(user.getProvider());
         r.setEmergencyContact(user.getEmergencyContact());
+        r.setProfileImageUrl(user.getProfileImageUrl());
         return r;
     }
 
@@ -110,5 +112,13 @@ public class UserResponse {
 
     public void setEmergencyContact(String emergencyContact) {
         this.emergencyContact = emergencyContact;
+    }
+
+    public String getProfileImageUrl() {
+        return profileImageUrl;
+    }
+
+    public void setProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
     }
 }

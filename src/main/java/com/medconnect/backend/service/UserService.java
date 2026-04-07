@@ -24,4 +24,6 @@ public interface UserService {
     UserResponse getByEmail(String email);
 
     UserResponse updateProfile(String email, UpdateProfileRequest request);
+
+    UserResponse updateProfileImage(String email, String profileImageUrl);
 }
