@@ -12,7 +12,6 @@ import com.medconnect.backend.repository.UserRepository;
 import com.medconnect.backend.security.JwtProperties;
 import com.medconnect.backend.security.JwtService;
 import com.medconnect.backend.service.AuthService;
-import com.medconnect.backend.service.CaptchaService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,20 +32,17 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
-    private final CaptchaService captchaService;
 
     public AuthServiceImpl(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            JwtProperties jwtProperties,
-            CaptchaService captchaService
+            JwtProperties jwtProperties
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.jwtProperties = jwtProperties;
-        this.captchaService = captchaService;
     }
 
     @Override
@@ -54,9 +50,6 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse register(RegisterRequest req) {
         System.out.println("Register request: " + req);
         System.out.println("Registering user role: " + req.getRole());
-        if (!captchaService.isValid(req.getCaptchaToken())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid captcha");
-        }
 
         if (req.getRole() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role is required");
