@@ -10,10 +10,8 @@ import com.medconnect.backend.repository.DoctorAvailabilityRepository;
 import com.medconnect.backend.repository.UserRepository;
 import com.medconnect.backend.service.AppointmentService;
 import com.medconnect.backend.service.NotificationService;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -54,17 +52,20 @@ public class AppointmentServiceImpl implements AppointmentService {
     private Appointment bookWithSlot(Appointment appointment) {
         Long slotId = appointment.getSlotId();
         DoctorAvailability slot = doctorAvailabilityRepository.findByIdForUpdate(slotId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid slotId"));
+                .orElseThrow(() -> new RuntimeException("Invalid slot"));
 
         if (slot.isBooked()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Slot already booked");
+            throw new RuntimeException("Slot already booked");
         }
         ZoneId zone = ZoneId.systemDefault();
         if (isSlotExpired(slot, zone)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Slot is no longer available");
+            throw new RuntimeException("Slot is no longer available");
         }
         if (appointment.getDoctorId() != null && !appointment.getDoctorId().equals(slot.getDoctorId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "doctorId does not match slot");
+            throw new RuntimeException("doctorId does not match slot");
+        }
+        if (slot.getStartTime() == null || slot.getEndTime() == null) {
+            throw new RuntimeException("Invalid slot data");
         }
 
         // Mark the slot first inside the same transaction to reduce race windows.
