@@ -10,4 +10,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     
     // Fetch only unread notifications (useful for the red counter badge)
     List<Notification> findByUserIdAndIsReadFalse(Long userId); 
+
+    void deleteByUserId(Long userId);
 }

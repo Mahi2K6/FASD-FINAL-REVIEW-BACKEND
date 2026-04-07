@@ -7,4 +7,8 @@ import java.util.List;
 public interface PrescriptionRepository extends JpaRepository<Prescription, Long> {
     List<Prescription> findByPatientId(Long patientId);
     List<Prescription> findByStatus(String status); // For Pharmacist to see pending ones
+
+    void deleteByPatientId(Long patientId);
+
+    void deleteByDoctorId(Long doctorId);
 }
