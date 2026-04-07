@@ -3,15 +3,12 @@ package com.medconnect.backend.controller;
 import com.medconnect.backend.model.Role;
 import com.medconnect.backend.model.User;
 import com.medconnect.backend.model.UserStatus;
-import com.medconnect.backend.model.dto.StatusUpdateRequest;
 import com.medconnect.backend.model.dto.UserResponse;
 import com.medconnect.backend.repository.AppointmentRepository;
 import com.medconnect.backend.repository.UserRepository;
 import com.medconnect.backend.service.UserService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -87,25 +84,41 @@ public class AdminController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public void deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        System.out.println("Admin action: delete user " + id);
+        if (!userRepository.existsById(id)) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+        User user = userRepository.findById(id).orElseThrow();
+        if (user.getRole() == Role.ADMIN) {
+            return ResponseEntity.status(403).body("Cannot delete admin");
+        }
+        userService.deleteUserByAdmin(id);
+        return ResponseEntity.ok("User deleted successfully");
     }
 
     @RequestMapping(value = "/users/{id}/status", method = {RequestMethod.PUT, RequestMethod.PATCH})
     public ResponseEntity<?> updateUserStatus(
             @PathVariable Long id,
-            @RequestBody StatusUpdateRequest request
+            @RequestBody Map<String, String> body
     ) {
-        String rawStatus = request.getStatus();
-        if (rawStatus == null || rawStatus.trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status is required");
+        String statusStr = body.get("status");
+        if (statusStr == null || statusStr.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Status is required");
         }
         UserStatus status;
         try {
-            status = UserStatus.valueOf(rawStatus.trim().toUpperCase(Locale.ROOT));
+            status = UserStatus.valueOf(statusStr.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status value");
+            return ResponseEntity.badRequest().body("Invalid status");
         }
-        return ResponseEntity.ok(userService.updateStatus(id, status));
+        System.out.println("Admin action: update status " + id + " -> " + status);
+        if (!userRepository.existsById(id)) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+        User user = userRepository.findById(id).orElseThrow();
+        user.setStatus(status);
+        userRepository.save(user);
+        return ResponseEntity.ok(UserResponse.from(user));
     }
 }
