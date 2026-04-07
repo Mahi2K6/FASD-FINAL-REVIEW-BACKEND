@@ -5,7 +5,12 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 @Entity
-@Table(name = "appointments")
+@Table(
+        name = "appointments",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "unique_slot", columnNames = {"slot_id"})
+        }
+)
 public class Appointment {
 
     @Id

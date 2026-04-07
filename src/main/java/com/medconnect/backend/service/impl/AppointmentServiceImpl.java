@@ -69,6 +69,11 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "doctorId does not match slot");
         }
 
+        // Mark the slot first inside the same transaction to reduce race windows.
+        slot.setBooked(true);
+        doctorAvailabilityRepository.save(slot);
+
+        appointment.setSlotId(slotId);
         appointment.setDoctorId(slot.getDoctorId());
         appointment.setAppointmentDate(Date.from(slot.getSlotDate().atStartOfDay(zone).toInstant()));
         appointment.setStartTime(formatSlotTime(slot.getStartTime()));
@@ -80,8 +85,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         Appointment saved = appointmentRepository.save(appointment);
-        slot.setBooked(true);
-        doctorAvailabilityRepository.save(slot);
         notifyDoctorNewAppointment(saved);
         return saved;
     }
