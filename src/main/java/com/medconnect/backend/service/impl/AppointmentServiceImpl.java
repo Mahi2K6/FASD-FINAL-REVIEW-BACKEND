@@ -2,8 +2,11 @@ package com.medconnect.backend.service.impl;
 
 import com.medconnect.backend.exception.ResourceNotFoundException;
 import com.medconnect.backend.model.Appointment;
+import com.medconnect.backend.model.User;
 import com.medconnect.backend.repository.AppointmentRepository;
+import com.medconnect.backend.repository.UserRepository;
 import com.medconnect.backend.service.AppointmentService;
+import com.medconnect.backend.service.NotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,16 +16,39 @@ import java.util.List;
 public class AppointmentServiceImpl implements AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public AppointmentServiceImpl(AppointmentRepository appointmentRepository) {
+    public AppointmentServiceImpl(
+            AppointmentRepository appointmentRepository,
+            UserRepository userRepository,
+            NotificationService notificationService
+    ) {
         this.appointmentRepository = appointmentRepository;
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
     @Transactional
     public Appointment book(Appointment appointment) {
+        appointment.setProblemDescription(appointment.getProblemDescription());
         appointment.setStatus("PENDING");
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+
+        String patientName = "a patient";
+        if (saved.getPatientId() != null) {
+            patientName = userRepository.findById(saved.getPatientId())
+                    .map(User::getName)
+                    .orElse(patientName);
+        }
+        notificationService.createNotification(
+                saved.getDoctorId(),
+                "New Appointment",
+                "You have a new appointment request from " + patientName,
+                "APPOINTMENT"
+        );
+        return saved;
     }
 
     @Override
