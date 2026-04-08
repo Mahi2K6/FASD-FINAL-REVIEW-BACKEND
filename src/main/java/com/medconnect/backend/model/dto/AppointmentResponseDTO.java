@@ -14,6 +14,12 @@ public class AppointmentResponseDTO {
     private String problemDescription;
     private String paymentStatus;
     private String meetingLink;
+    /** Set when booking uses a slot; null for legacy rows. */
+    private Long slotId;
+    /** Populated for doctor-facing responses; null for patient /my list. */
+    private String patientName;
+    /** Populated for doctor-facing responses; null for patient /my list. */
+    private String patientPhone;
 
     public AppointmentResponseDTO(
             Long id,
@@ -27,7 +33,10 @@ public class AppointmentResponseDTO {
             String status,
             String problemDescription,
             String paymentStatus,
-            String meetingLink
+            String meetingLink,
+            Long slotId,
+            String patientName,
+            String patientPhone
     ) {
         this.id = id;
         this.patientId = patientId;
@@ -41,6 +50,9 @@ public class AppointmentResponseDTO {
         this.problemDescription = problemDescription;
         this.paymentStatus = paymentStatus;
         this.meetingLink = meetingLink;
+        this.slotId = slotId;
+        this.patientName = patientName;
+        this.patientPhone = patientPhone;
     }
 
     public Long getId() { return id; }
@@ -55,4 +67,7 @@ public class AppointmentResponseDTO {
     public String getProblemDescription() { return problemDescription; }
     public String getPaymentStatus() { return paymentStatus; }
     public String getMeetingLink() { return meetingLink; }
+    public Long getSlotId() { return slotId; }
+    public String getPatientName() { return patientName; }
+    public String getPatientPhone() { return patientPhone; }
 }

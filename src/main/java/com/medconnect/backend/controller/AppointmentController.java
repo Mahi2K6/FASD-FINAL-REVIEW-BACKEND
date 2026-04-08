@@ -48,13 +48,17 @@ public class AppointmentController {
     }
 
     @GetMapping("/doctor/{doctorId}")
-    public List<Appointment> getDoctorAppointments(@PathVariable Long doctorId) {
-        return appointmentService.findByDoctorId(doctorId);
+    public List<AppointmentResponseDTO> getDoctorAppointments(@PathVariable Long doctorId) {
+        System.out.println("Fetching appointments...");
+        List<AppointmentResponseDTO> result = appointmentService.findByDoctorId(doctorId);
+        return result == null ? List.of() : result;
     }
 
     @GetMapping("/patient/{patientId}")
     public List<AppointmentResponseDTO> getPatientAppointments(@PathVariable Long patientId) {
-        return appointmentService.findByPatientId(patientId);
+        System.out.println("Fetching appointments...");
+        List<AppointmentResponseDTO> result = appointmentService.findByPatientId(patientId);
+        return result == null ? List.of() : result;
     }
 
     @PutMapping("/status/{id}")
@@ -69,11 +73,14 @@ public class AppointmentController {
 
     @GetMapping("/my")
     public List<AppointmentResponseDTO> myAppointments(Principal principal) {
+        System.out.println("Fetching appointments...");
         User user = userRepository.findByEmail(principal.getName().trim().toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal.getName()));
         if (user.getRole() == Role.DOCTOR) {
-            return appointmentService.findByDoctorIdEnriched(user.getId());
+            List<AppointmentResponseDTO> result = appointmentService.findByDoctorId(user.getId());
+            return result == null ? List.of() : result;
         }
-        return appointmentService.findByPatientId(user.getId());
+        List<AppointmentResponseDTO> result = appointmentService.findByPatientId(user.getId());
+        return result == null ? List.of() : result;
     }
 }

@@ -81,7 +81,7 @@ public class DoctorAvailabilityServiceImpl implements DoctorAvailabilityService 
 
         List<SlotResponseDTO> result = new ArrayList<>();
         for (DoctorAvailability s : rows) {
-            boolean isBooked = s.isBooked() || appointmentRepository.existsBySlotId(s.getId());
+            boolean isBooked = s.isBooked() || appointmentRepository.existsBySlotIdAndDoctorId(s.getId(), doctorId);
             result.add(new SlotResponseDTO(
                     s.getId(),
                     s.getStartTime(),

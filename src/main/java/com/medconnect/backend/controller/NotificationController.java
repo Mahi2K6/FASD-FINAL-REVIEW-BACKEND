@@ -23,14 +23,22 @@ public class NotificationController {
         this.userRepository = userRepository;
     }
 
+    @GetMapping
+    public List<Notification> getAllNotifications() {
+        List<Notification> list = notificationRepository.findAll();
+        return list == null ? List.of() : list;
+    }
+
     @GetMapping("/user/{userId}")
     public List<Notification> getUserNotifications(@PathVariable Long userId) {
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        List<Notification> list = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return list == null ? List.of() : list;
     }
 
     @GetMapping("/user/{userId}/unread")
     public List<Notification> getUnreadNotifications(@PathVariable Long userId) {
-        return notificationRepository.findByUserIdAndIsReadFalse(userId);
+        List<Notification> list = notificationRepository.findByUserIdAndIsReadFalse(userId);
+        return list == null ? List.of() : list;
     }
 
     @PutMapping("/read/{id}")
@@ -45,6 +53,7 @@ public class NotificationController {
     public List<Notification> myNotifications(Principal principal) {
         User user = userRepository.findByEmail(principal.getName().trim().toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal.getName()));
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        List<Notification> list = notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        return list == null ? List.of() : list;
     }
 }

@@ -61,7 +61,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (slot.isBooked()) {
             throw new RuntimeException("Slot already booked");
         }
-        if (appointmentRepository.existsBySlotId(slotId)) {
+        Long scopedDoctorId = appointment.getDoctorId() != null ? appointment.getDoctorId() : slot.getDoctorId();
+        if (appointmentRepository.existsBySlotIdAndDoctorId(slotId, scopedDoctorId)) {
             throw new SlotAlreadyBookedException("This slot has already been booked.");
         }
         ZoneId zone = ZoneId.systemDefault();
@@ -128,22 +129,28 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Appointment> findByDoctorId(Long doctorId) {
-        return appointmentRepository.findByDoctorIdOrderByAppointmentDateDescIdDesc(doctorId);
+    public List<AppointmentResponseDTO> findByDoctorId(Long doctorId) {
+        List<Appointment> appointments = appointmentRepository.findByDoctorIdOrderByAppointmentDateDescIdDesc(doctorId);
+        if (appointments == null) {
+            return List.of();
+        }
+        return mapToAppointmentResponseForDoctor(appointments);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AppointmentResponseDTO> findByPatientId(Long patientId) {
         List<Appointment> appointments = appointmentRepository.findByPatientIdOrderByAppointmentDateDescIdDesc(patientId);
-        return mapToAppointmentResponse(appointments);
+        if (appointments == null) {
+            return List.of();
+        }
+        return mapToAppointmentResponseForPatient(appointments);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AppointmentResponseDTO> findByDoctorIdEnriched(Long doctorId) {
-        List<Appointment> appointments = appointmentRepository.findByDoctorIdOrderByAppointmentDateDescIdDesc(doctorId);
-        return mapToAppointmentResponse(appointments);
+        return findByDoctorId(doctorId);
     }
 
     @Override
@@ -174,7 +181,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         return appointmentRepository.save(a);
     }
 
-    private List<AppointmentResponseDTO> mapToAppointmentResponse(List<Appointment> appointments) {
+    /** Patient-facing: doctor name/specialty enriched; patientName/patientPhone left null. */
+    private List<AppointmentResponseDTO> mapToAppointmentResponseForPatient(List<Appointment> appointments) {
         ZoneId zone = ZoneId.systemDefault();
         return appointments.stream().map(appointment -> {
             User doctor = appointment.getDoctorId() != null
@@ -188,7 +196,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                     appointment.getId(),
                     appointment.getPatientId(),
                     appointment.getDoctorId(),
-                    doctor != null ? doctor.getName() : null,
+                    doctor != null ? doctor.getName() : "Unknown",
                     doctor != null ? doctor.getSpecialization() : null,
                     formattedDate,
                     appointment.getStartTime(),
@@ -196,7 +204,44 @@ public class AppointmentServiceImpl implements AppointmentService {
                     appointment.getStatus(),
                     appointment.getProblemDescription(),
                     paymentStatus,
-                    appointment.getMeetingLink()
+                    appointment.getMeetingLink(),
+                    appointment.getSlotId(),
+                    null,
+                    null
+            );
+        }).toList();
+    }
+
+    /** Doctor-facing: patient name/phone enriched; doctor fields still filled from doctor user for consistency. */
+    private List<AppointmentResponseDTO> mapToAppointmentResponseForDoctor(List<Appointment> appointments) {
+        ZoneId zone = ZoneId.systemDefault();
+        return appointments.stream().map(appointment -> {
+            User doctor = appointment.getDoctorId() != null
+                    ? userRepository.findById(appointment.getDoctorId()).orElse(null)
+                    : null;
+            User patient = appointment.getPatientId() != null
+                    ? userRepository.findById(appointment.getPatientId()).orElse(null)
+                    : null;
+            String formattedDate = appointment.getAppointmentDate() == null
+                    ? null
+                    : appointment.getAppointmentDate().toInstant().atZone(zone).toLocalDate().format(DATE_FORMAT);
+            String paymentStatus = appointment.getPaymentStatus() == null ? null : appointment.getPaymentStatus().name();
+            return new AppointmentResponseDTO(
+                    appointment.getId(),
+                    appointment.getPatientId(),
+                    appointment.getDoctorId(),
+                    doctor != null ? doctor.getName() : "Unknown",
+                    doctor != null ? doctor.getSpecialization() : null,
+                    formattedDate,
+                    appointment.getStartTime(),
+                    appointment.getEndTime(),
+                    appointment.getStatus(),
+                    appointment.getProblemDescription(),
+                    paymentStatus,
+                    appointment.getMeetingLink(),
+                    appointment.getSlotId(),
+                    patient != null ? patient.getName() : "Unknown",
+                    patient != null ? patient.getPhone() : null
             );
         }).toList();
     }

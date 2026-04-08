@@ -1,10 +1,14 @@
 package com.medconnect.backend.controller;
 
-import com.medconnect.backend.exception.ResourceNotFoundException;
 import com.medconnect.backend.model.InventoryItem;
-import com.medconnect.backend.repository.InventoryRepository;
+import com.medconnect.backend.model.dto.InventoryUpdateRequest;
+import com.medconnect.backend.service.InventoryService;
+import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -12,30 +16,36 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class InventoryController {
 
-    private final InventoryRepository inventoryRepository;
+    private final InventoryService inventoryService;
 
-    public InventoryController(InventoryRepository inventoryRepository) {
-        this.inventoryRepository = inventoryRepository;
+    public InventoryController(InventoryService inventoryService) {
+        this.inventoryService = inventoryService;
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('PHARMACIST','ADMIN')")
     public List<InventoryItem> getInventory() {
-        return inventoryRepository.findAll();
+        return inventoryService.getAll();
+    }
+
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('PHARMACIST','ADMIN')")
+    public InventoryItem createInventory(@Valid @RequestBody InventoryItem item) {
+        System.out.println("Inventory item received: " + item.getMedicineName());
+        return inventoryService.save(item);
     }
 
     @PutMapping("/{id}")
-    public InventoryItem updateInventory(@PathVariable Long id, @RequestBody InventoryItem request) {
-        InventoryItem item = inventoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Inventory item not found: " + id));
-        if (request.getName() != null) {
-            item.setName(request.getName().trim());
-        }
-        if (request.getQuantity() != null) {
-            item.setQuantity(request.getQuantity());
-        }
-        if (request.getPrice() != null) {
-            item.setPrice(request.getPrice());
-        }
-        return inventoryRepository.save(item);
+    @PreAuthorize("hasAnyRole('PHARMACIST','ADMIN')")
+    public InventoryItem updateInventory(@PathVariable Long id, @RequestBody InventoryUpdateRequest request) {
+        return inventoryService.update(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('PHARMACIST','ADMIN')")
+    public ResponseEntity<?> deleteInventory(@PathVariable Long id) {
+        inventoryService.delete(id);
+        return ResponseEntity.ok("Deleted successfully");
     }
 }

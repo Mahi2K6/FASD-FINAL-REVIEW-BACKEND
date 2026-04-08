@@ -9,10 +9,11 @@ public interface AppointmentService {
 
     Appointment book(Appointment appointment);
 
-    List<Appointment> findByDoctorId(Long doctorId);
+    List<AppointmentResponseDTO> findByDoctorId(Long doctorId);
 
     List<AppointmentResponseDTO> findByPatientId(Long patientId);
 
+    /** Same as {@link #findByDoctorId(Long)}; kept for existing call sites. */
     List<AppointmentResponseDTO> findByDoctorIdEnriched(Long doctorId);
 
     Appointment updateStatus(Long id, String status);
