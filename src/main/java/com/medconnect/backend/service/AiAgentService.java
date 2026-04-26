@@ -85,19 +85,29 @@ public class AiAgentService {
         log.info("AI specialty returned: {}", specialty);
         log.info("Normalized specialty: {}", normalizedSpecialty);
         log.info("Repository query value: {}", normalizedSpecialty);
-        List<User> allDoctors = userRepository.findByRole(Role.DOCTOR);
-        log.info("Total doctors fetched: {}", allDoctors.size());
-        log.info("Doctor specialization values: {}", allDoctors.stream().map(User::getSpecialization).toList());
+        List<User> allUsers = userRepository.findAll();
+        List<User> allDoctors = allUsers.stream()
+                .filter(user -> user.getRole() == Role.DOCTOR)
+                .toList();
+        log.info("Total users fetched from DB: {}", allUsers.size());
+        log.info("Total doctors fetched from DB: {}", allDoctors.size());
+        log.info("Doctor specialization values found in DB: {}", allDoctors.stream().map(User::getSpecialization).toList());
+        log.info("Doctor role values found in DB: {}", allDoctors.stream().map(User::getRole).toList());
+        log.info("Doctor status values found in DB: {}", allDoctors.stream().map(User::getStatus).toList());
+        for (User doctor : allDoctors) {
+            log.info("Doctor DB row -> id={} name={} role={} specialization={} status={}",
+                    doctor.getId(), doctor.getName(), doctor.getRole(), doctor.getSpecialization(), doctor.getStatus());
+        }
 
         List<User> doctors = findDoctorsBySpecialty(normalizedSpecialty, allDoctors);
-        log.info("Total doctors matched: {}", doctors.size());
+        log.info("Total doctors after filtering: {}", doctors.size());
 
         if (doctors.isEmpty()) {
             String normalizedFallback = normalizeSpecialty(DEFAULT_SPECIALTY);
             log.info("Repository query value (fallback): {}", normalizedFallback);
             doctors = findDoctorsBySpecialty(normalizedFallback, allDoctors);
             specialty = normalizedFallback;
-            log.info("Total doctors matched after fallback to General: {}", doctors.size());
+            log.info("Total doctors after filtering with General fallback: {}", doctors.size());
         } else {
             specialty = normalizedSpecialty;
         }
@@ -360,6 +370,7 @@ public class AiAgentService {
         String value = defaultIfBlank(specialty, DEFAULT_SPECIALTY).toLowerCase(Locale.ROOT).trim();
         return switch (value) {
             case "general medicine", "general physician", "physician", "general doctor" -> "General";
+            case "family doctor", "family physician" -> "General";
             case "dermatology", "dermatologist" -> "Dermatology";
             case "neurology", "neurologist" -> "Neurology";
             case "cardiology", "cardiologist" -> "Cardiology";
@@ -368,6 +379,9 @@ public class AiAgentService {
             case "obstetrics and gynecology", "obstetrics & gynecology", "obgyn", "gynaecology", "gynecology" -> "Gynecology";
             default -> {
                 if (value.contains("general")) {
+                    yield "General";
+                }
+                if (value.contains("physician") || value.contains("family")) {
                     yield "General";
                 }
                 if (value.contains("derma")) {
@@ -416,33 +430,31 @@ public class AiAgentService {
         List<User> repoRows = userRepository.findBySpecializationContainingIgnoreCase(queryValue).stream()
                 .filter(user -> user.getRole() == Role.DOCTOR)
                 .toList();
-        List<User> repoMatchedActive = repoRows.stream()
-                .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+        List<User> repoMatched = repoRows.stream()
                 .filter(user -> matchesSpecialtyTolerant(user.getSpecialization(), normalizedQuery))
                 .toList();
-        if (!repoMatchedActive.isEmpty()) {
-            log.info("Doctor specialization values found in DB (repo active match): {}",
-                    repoMatchedActive.stream().map(User::getSpecialization).toList());
-            return repoMatchedActive;
+        if (!repoMatched.isEmpty()) {
+            log.info("Doctor specialization values found in DB (repo match): {}",
+                    repoMatched.stream().map(User::getSpecialization).toList());
+            return repoMatched;
         }
 
         // Step 2: fallback strategy - fetch all doctors and perform tolerant Java filtering.
-        List<User> manuallyFilteredActive = allDoctors.stream()
-                .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+        List<User> manuallyFiltered = allDoctors.stream()
                 .filter(user -> matchesSpecialtyTolerant(user.getSpecialization(), normalizedQuery))
                 .toList();
-        if (!manuallyFilteredActive.isEmpty()) {
-            log.info("Doctor specialization values found in DB (manual active match): {}",
-                    manuallyFilteredActive.stream().map(User::getSpecialization).toList());
-            return manuallyFilteredActive;
+        if (!manuallyFiltered.isEmpty()) {
+            log.info("Doctor specialization values found in DB (manual match): {}",
+                    manuallyFiltered.stream().map(User::getSpecialization).toList());
+            return manuallyFiltered;
         }
 
-        // Step 3: last resort (only when no ACTIVE doctors matched) - include non-rejected doctors.
+        // Step 3: final safeguard fallback to General matching.
+        String normalizedGeneral = normalizeSpecialty("General");
         List<User> manualAnyStatus = allDoctors.stream()
-                .filter(user -> user.getStatus() != UserStatus.REJECTED)
-                .filter(user -> matchesSpecialtyTolerant(user.getSpecialization(), normalizedQuery))
+                .filter(user -> matchesSpecialtyTolerant(user.getSpecialization(), normalizedGeneral))
                 .toList();
-        log.info("Doctor specialization values found in DB (manual any-status match): {}",
+        log.info("Doctor specialization values found in DB (manual General fallback match): {}",
                 manualAnyStatus.stream().map(User::getSpecialization).toList());
         return manualAnyStatus;
     }
