@@ -82,8 +82,8 @@ public class AiAgentService {
         String normalizedSpecialty = normalizeSpecialty(specialty);
         String priority = safePriority(analysis.priority);
 
-        log.info("AI specialty received: {}", specialty);
-        log.info("Normalized specialty used: {}", normalizedSpecialty);
+        log.info("AI specialty returned: {}", specialty);
+        log.info("Normalized specialty: {}", normalizedSpecialty);
         log.info("Repository query value: {}", normalizedSpecialty);
         List<User> allDoctors = userRepository.findByRole(Role.DOCTOR);
         log.info("Total doctors fetched: {}", allDoctors.size());
@@ -119,11 +119,22 @@ public class AiAgentService {
 
         List<DoctorCandidate> ranked = rankDoctors(doctors, priority);
         if (ranked.isEmpty()) {
-            response.setReasoning(response.getReasoning() + " No open slots were found right now.");
-            return response;
+            log.info("No slots available for matched doctors, attempting temporary draft slot fallback.");
+            User fallbackDoctor = doctors.get(0);
+            DoctorAvailability fallbackSlot = createTemporaryDraftSlot(fallbackDoctor.getId());
+            if (fallbackSlot == null) {
+                response.setReasoning(response.getReasoning() + " No open slots were found right now.");
+                return response;
+            }
+            ranked = List.of(new DoctorCandidate(fallbackDoctor, fallbackSlot, deriveRating(fallbackDoctor)));
         }
 
         DoctorCandidate selected = ranked.get(0);
+        log.info("Chosen doctor: {} | specialization: {}", selected.doctor().getName(), selected.doctor().getSpecialization());
+        log.info("Available slots found for chosen doctor: {}", doctorAvailabilityRepository
+                .findUpcomingAvailableSlots(selected.doctor().getId(), LocalDate.now(), LocalTime.now())
+                .size());
+
         DoctorAvailability lockedSlot = doctorAvailabilityRepository.findByIdForUpdate(selected.slot().getId())
                 .orElse(null);
         if (lockedSlot == null || lockedSlot.isBooked()) {
@@ -134,6 +145,8 @@ public class AiAgentService {
         lockedSlot.setBooked(true);
         doctorAvailabilityRepository.saveAndFlush(lockedSlot);
 
+        log.info("Appointment creation attempt: patientId={} doctorId={} slotId={}",
+                patient.getId(), selected.doctor().getId(), lockedSlot.getId());
         Appointment appointment = new Appointment();
         appointment.setPatientId(patient.getId());
         appointment.setDoctorId(selected.doctor().getId());
@@ -451,6 +464,38 @@ public class AiAgentService {
                 || (left.contains("derma") && right.contains("derma"))
                 || ((left.contains("gyne") || left.contains("gyn")) && (right.contains("gyne") || right.contains("gyn")))
                 || (left.contains("pediat") && right.contains("pediat"));
+    }
+
+    private DoctorAvailability createTemporaryDraftSlot(Long doctorId) {
+        LocalDate date = LocalDate.now().plusDays(1);
+        LocalTime start = LocalTime.of(10, 0);
+        LocalTime endBoundary = LocalTime.of(18, 0);
+
+        for (int dayOffset = 0; dayOffset < 30; dayOffset++) {
+            LocalDate targetDate = date.plusDays(dayOffset);
+            LocalTime cursor = start;
+            while (cursor.isBefore(endBoundary)) {
+                LocalTime slotEnd = cursor.plusMinutes(30);
+                if (slotEnd.isAfter(endBoundary)) {
+                    break;
+                }
+                boolean exists = doctorAvailabilityRepository.existsByDoctorIdAndSlotDateAndStartTime(doctorId, targetDate, cursor);
+                if (!exists) {
+                    DoctorAvailability slot = new DoctorAvailability();
+                    slot.setDoctorId(doctorId);
+                    slot.setSlotDate(targetDate);
+                    slot.setStartTime(cursor);
+                    slot.setEndTime(slotEnd);
+                    slot.setBooked(false);
+                    DoctorAvailability saved = doctorAvailabilityRepository.saveAndFlush(slot);
+                    log.info("Temporary draft slot generated for doctorId={} at {} {}", doctorId, targetDate, cursor);
+                    return saved;
+                }
+                cursor = slotEnd;
+            }
+        }
+        log.warn("Unable to create temporary draft slot for doctorId={}", doctorId);
+        return null;
     }
 
     private double deriveRating(User doctor) {
