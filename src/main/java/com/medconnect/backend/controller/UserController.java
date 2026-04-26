@@ -1,5 +1,7 @@
 package com.medconnect.backend.controller;
 
+import org.springframework.http.ResponseEntity;
+
 import com.medconnect.backend.model.Role;
 import com.medconnect.backend.model.dto.UpdateProfileRequest;
 import com.medconnect.backend.model.dto.UserResponse;
@@ -34,33 +36,45 @@ public class UserController {
 
     @GetMapping("/doctors")
     @PreAuthorize("isAuthenticated()")
-    public List<UserResponse> getDoctors() {
-        return userService.findByRole(Role.DOCTOR);
+    public ResponseEntity<List<UserResponse>> getDoctors() {
+        return ResponseEntity.ok(userService.findByRole(Role.DOCTOR));
+    }
+
+    @GetMapping("/patients")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<UserResponse>> getPatients() {
+        return ResponseEntity.ok(userService.findByRole(Role.PATIENT));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.findById(id));
     }
 
     @GetMapping("/profile")
     @PreAuthorize("isAuthenticated()")
-    public UserResponse getProfile(Principal principal) {
-        return userService.getByEmail(principal.getName().trim().toLowerCase());
+    public ResponseEntity<UserResponse> getProfile(Principal principal) {
+        return ResponseEntity.ok(userService.getByEmail(principal.getName().trim().toLowerCase()));
     }
 
     @PutMapping("/profile")
     @PreAuthorize("isAuthenticated()")
-    public UserResponse updateProfile(
+    public ResponseEntity<UserResponse> updateProfile(
             Principal principal,
             @Valid @RequestBody UpdateProfileRequest request
     ) {
-        return userService.updateProfile(principal.getName().trim().toLowerCase(), request);
+        return ResponseEntity.ok(userService.updateProfile(principal.getName().trim().toLowerCase(), request));
     }
 
     @PutMapping("/profile/image")
     @PreAuthorize("isAuthenticated()")
-    public UserResponse updateProfileImage(
+    public ResponseEntity<UserResponse> updateProfileImage(
             Principal principal,
             @RequestParam("file") MultipartFile file
     ) {
         if (file == null || file.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is required");
+            return ResponseEntity.badRequest().build();
         }
         try {
             Path dir = Paths.get("uploads");
@@ -79,9 +93,9 @@ public class UserController {
                     .path("/api/files/")
                     .path(saved)
                     .toUriString();
-            return userService.updateProfileImage(principal.getName().trim().toLowerCase(), url);
+            return ResponseEntity.ok(userService.updateProfileImage(principal.getName().trim().toLowerCase(), url));
         } catch (IOException ex) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to store profile image", ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

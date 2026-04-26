@@ -13,4 +13,8 @@ public interface PrescriptionService {
     List<Prescription> findPending();
 
     Prescription dispense(Long id);
+
+    Prescription update(Long id, Prescription prescription);
+
+    void delete(Long id);
 }

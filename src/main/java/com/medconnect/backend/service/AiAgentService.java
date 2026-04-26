@@ -228,6 +228,7 @@ public class AiAgentService {
     }
 
     private Analysis extractAnalysis(String requestText) {
+        // If Gemini API key is missing, use fallback immediately
         if (geminiApiKey == null || geminiApiKey.isBlank()) {
             return fallbackAnalysis(requestText, "Gemini key missing, fallback used.");
         }
@@ -261,13 +262,23 @@ public class AiAgentService {
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() / 100 != 2) {
                 log.warn("Gemini call failed with status {} body {}", response.statusCode(), response.body());
-                return fallbackAnalysis(requestText, "AI service unavailable, fallback used.");
+                // Check for quota exceeded (429) or other API errors
+                if (response.statusCode() == 429) {
+                    return fallbackAnalysis(requestText, "AI quota exceeded, fallback used.");
+                } else {
+                    return fallbackAnalysis(requestText, "AI service unavailable, fallback used.");
+                }
             }
 
             return parseGeminiResponse(response.body(), requestText);
         } catch (Exception ex) {
             log.warn("Gemini processing failed", ex);
-            return fallbackAnalysis(requestText, "AI parsing failed, fallback used.");
+            // Check if it's a quota exceeded exception
+            String errorMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase(Locale.ROOT) : "";
+            if (errorMsg.contains("quota") || errorMsg.contains("429") || errorMsg.contains("resource exhausted")) {
+                return fallbackAnalysis(requestText, "AI quota exceeded, fallback used.");
+            }
+            return fallbackAnalysis(requestText, "AI processing failed, fallback used.");
         }
     }
 
@@ -327,6 +338,59 @@ public class AiAgentService {
         analysis.specialty = inferSpecialty(requestText);
         analysis.reasoning = reason;
         return analysis;
+    }
+
+    /**
+     * Provides fallback advice when Gemini API is unavailable or quota exceeded.
+     * Maps symptoms to appropriate doctor specialties.
+     * 
+     * @param input User's symptom description
+     * @return Friendly advice recommending a doctor type
+     */
+    private String fallbackAdvice(String input) {
+        if (input == null || input.isBlank()) {
+            return "I'm unable to process your request right now. Please try again later or consult with a healthcare professional.";
+        }
+
+        // Normalize input: lowercase, trim, remove punctuation
+        String normalized = input.toLowerCase(Locale.ROOT)
+                .trim()
+                .replaceAll("[\\p{Punct}]", "");
+
+        // Symptom to doctor mapping
+        if (normalized.contains("fever") || normalized.contains("cold") || normalized.contains("flu")) {
+            if (normalized.contains("child") || normalized.contains("baby") || normalized.contains("kid")) {
+                return "Based on your symptoms, you may consult a Pediatrician.";
+            }
+            return "Based on your symptoms, you may consult a General Physician.";
+        }
+        
+        if (normalized.contains("cough")) {
+            return "Based on your symptoms, you may consult a Pulmonologist.";
+        }
+        
+        if (normalized.contains("headache") || normalized.contains("migraine")) {
+            return "Based on your symptoms, you may consult a Neurologist or General Physician.";
+        }
+        
+        if (normalized.contains("skin") || normalized.contains("rash") || normalized.contains("itch") || normalized.contains("allergy")) {
+            return "Based on your symptoms, you may consult a Dermatologist.";
+        }
+        
+        if (normalized.contains("chest pain") || normalized.contains("heart") || normalized.contains("cardio") || normalized.contains("palpitation")) {
+            return "Based on your symptoms, you may consult a Cardiologist.";
+        }
+        
+        if (normalized.contains("stomach pain") || normalized.contains("abdominal pain") || normalized.contains("digest") || normalized.contains("nausea") || normalized.contains("vomiting")) {
+            return "Based on your symptoms, you may consult a Gastroenterologist.";
+        }
+        
+        if (normalized.contains("anxiety") || normalized.contains("stress") || normalized.contains("depression") || normalized.contains("mental")) {
+            return "Based on your symptoms, you may consult a Psychiatrist.";
+        }
+        
+        // Default fallback
+        return "Based on your symptoms, you may consult a General Physician for initial evaluation.";
     }
 
     private String inferPriority(String requestText) {

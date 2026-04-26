@@ -5,6 +5,7 @@ import com.medconnect.backend.model.Notification;
 import com.medconnect.backend.model.User;
 import com.medconnect.backend.repository.NotificationRepository;
 import com.medconnect.backend.repository.UserRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -24,36 +25,39 @@ public class NotificationController {
     }
 
     @GetMapping
-    public List<Notification> getAllNotifications() {
+    public ResponseEntity<List<Notification>> getAllNotifications() {
         List<Notification> list = notificationRepository.findAll();
-        return list == null ? List.of() : list;
+        return ResponseEntity.ok(list == null ? List.of() : list);
     }
 
     @GetMapping("/user/{userId}")
-    public List<Notification> getUserNotifications(@PathVariable Long userId) {
+    public ResponseEntity<List<Notification>> getUserNotifications(@PathVariable Long userId) {
         List<Notification> list = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        return list == null ? List.of() : list;
+        return ResponseEntity.ok(list == null ? List.of() : list);
     }
 
     @GetMapping("/user/{userId}/unread")
-    public List<Notification> getUnreadNotifications(@PathVariable Long userId) {
+    public ResponseEntity<List<Notification>> getUnreadNotifications(@PathVariable Long userId) {
         List<Notification> list = notificationRepository.findByUserIdAndIsReadFalse(userId);
-        return list == null ? List.of() : list;
+        return ResponseEntity.ok(list == null ? List.of() : list);
     }
 
     @PutMapping("/read/{id}")
-    public Notification markAsRead(@PathVariable Long id) {
-        Notification notif = notificationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Notification not found: " + id));
-        notif.setRead(true);
-        return notificationRepository.save(notif);
+    public ResponseEntity<Notification> markAsRead(@PathVariable Long id) {
+        return notificationRepository.findById(id)
+                .map(notification -> {
+                    notification.setRead(true);
+                    Notification saved = notificationRepository.save(notification);
+                    return ResponseEntity.ok(saved);
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/my")
-    public List<Notification> myNotifications(Principal principal) {
+    public ResponseEntity<List<Notification>> myNotifications(Principal principal) {
         User user = userRepository.findByEmail(principal.getName().trim().toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal.getName()));
         List<Notification> list = notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
-        return list == null ? List.of() : list;
+        return ResponseEntity.ok(list == null ? List.of() : list);
     }
 }

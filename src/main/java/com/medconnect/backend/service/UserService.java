@@ -29,4 +29,8 @@ public interface UserService {
     UserResponse updateProfile(String email, UpdateProfileRequest request);
 
     UserResponse updateProfileImage(String email, String profileImageUrl);
+
+    List<UserResponse> findAll();
+
+    UserResponse findById(Long id);
 }

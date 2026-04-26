@@ -160,4 +160,18 @@ public class UserServiceImpl implements UserService {
         user.setProfileImageUrl(profileImageUrl);
         return UserResponse.from(userRepository.save(user));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserResponse> findAll() {
+        return userRepository.findAll().stream().map(UserResponse::from).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserResponse findById(Long id) {
+        return userRepository.findById(id)
+                .map(UserResponse::from)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
+    }
 }

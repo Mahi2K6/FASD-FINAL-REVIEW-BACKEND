@@ -22,4 +22,10 @@ public interface AppointmentService {
 
     /** Mock payment: marks payment as PAID. */
     Appointment markPaymentPaid(Long appointmentId);
+
+    Appointment updateAppointment(Long id, Appointment appointment);
+
+    void deleteById(Long id);
+
+    boolean existsById(Long id);
 }

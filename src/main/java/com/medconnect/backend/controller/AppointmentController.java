@@ -48,39 +48,69 @@ public class AppointmentController {
     }
 
     @GetMapping("/doctor/{doctorId}")
-    public List<AppointmentResponseDTO> getDoctorAppointments(@PathVariable Long doctorId) {
+    public ResponseEntity<List<AppointmentResponseDTO>> getDoctorAppointments(@PathVariable Long doctorId) {
         System.out.println("Fetching appointments...");
         List<AppointmentResponseDTO> result = appointmentService.findByDoctorId(doctorId);
-        return result == null ? List.of() : result;
+        return ResponseEntity.ok(result == null ? List.of() : result);
     }
 
     @GetMapping("/patient/{patientId}")
-    public List<AppointmentResponseDTO> getPatientAppointments(@PathVariable Long patientId) {
+    public ResponseEntity<List<AppointmentResponseDTO>> getPatientAppointments(@PathVariable Long patientId) {
         System.out.println("Fetching appointments...");
         List<AppointmentResponseDTO> result = appointmentService.findByPatientId(patientId);
-        return result == null ? List.of() : result;
+        return ResponseEntity.ok(result == null ? List.of() : result);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Appointment> updateAppointment(@PathVariable Long id, @RequestBody Appointment appointment) {
+        Appointment updated = appointmentService.updateAppointment(id, appointment);
+        if (updated != null) {
+            return ResponseEntity.ok(updated);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAppointment(@PathVariable Long id) {
+        if (appointmentService.existsById(id)) {
+            appointmentService.deleteById(id);
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PutMapping("/status/{id}")
-    public Appointment updateStatus(@PathVariable Long id, @RequestBody String status) {
-        return appointmentService.updateStatus(id, status);
+    public ResponseEntity<Appointment> updateStatus(@PathVariable Long id, @RequestBody String status) {
+        Appointment updated = appointmentService.updateStatus(id, status);
+        if (updated != null) {
+            return ResponseEntity.ok(updated);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PutMapping("/{id}/summary")
-    public Appointment saveCallSummary(@PathVariable Long id, @RequestBody String summary) {
-        return appointmentService.saveCallSummary(id, summary);
+    public ResponseEntity<Appointment> saveCallSummary(@PathVariable Long id, @RequestBody String summary) {
+        Appointment updated = appointmentService.saveCallSummary(id, summary);
+        if (updated != null) {
+            return ResponseEntity.ok(updated);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/my")
-    public List<AppointmentResponseDTO> myAppointments(Principal principal) {
+    public ResponseEntity<List<AppointmentResponseDTO>> myAppointments(Principal principal) {
         System.out.println("Fetching appointments...");
         User user = userRepository.findByEmail(principal.getName().trim().toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal.getName()));
         if (user.getRole() == Role.DOCTOR) {
             List<AppointmentResponseDTO> result = appointmentService.findByDoctorId(user.getId());
-            return result == null ? List.of() : result;
+            return ResponseEntity.ok(result == null ? List.of() : result);
         }
         List<AppointmentResponseDTO> result = appointmentService.findByPatientId(user.getId());
-        return result == null ? List.of() : result;
+        return ResponseEntity.ok(result == null ? List.of() : result);
     }
 }

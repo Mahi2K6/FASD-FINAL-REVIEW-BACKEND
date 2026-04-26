@@ -58,4 +58,23 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         );
         return saved;
     }
+
+    @Override
+    @Transactional
+    public Prescription update(Long id, Prescription prescription) {
+        Prescription existing = prescriptionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Prescription not found: " + id));
+        existing.setPatientId(prescription.getPatientId());
+        existing.setDoctorId(prescription.getDoctorId());
+        existing.setAppointmentId(prescription.getAppointmentId());
+        existing.setMedicines(prescription.getMedicines());
+        existing.setStatus(prescription.getStatus());
+        return prescriptionRepository.save(existing);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        prescriptionRepository.deleteById(id);
+    }
 }

@@ -181,6 +181,38 @@ public class AppointmentServiceImpl implements AppointmentService {
         return appointmentRepository.save(a);
     }
 
+    @Override
+    @Transactional
+    public Appointment updateAppointment(Long id, Appointment appointment) {
+        Appointment existing = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found: " + id));
+        existing.setPatientId(appointment.getPatientId());
+        existing.setDoctorId(appointment.getDoctorId());
+        existing.setSlotId(appointment.getSlotId());
+        existing.setAppointmentDate(appointment.getAppointmentDate());
+        existing.setProblemDescription(appointment.getProblemDescription());
+        existing.setStatus(appointment.getStatus());
+        existing.setMeetingLink(appointment.getMeetingLink());
+        existing.setStartTime(appointment.getStartTime());
+        existing.setEndTime(appointment.getEndTime());
+        existing.setCallSummary(appointment.getCallSummary());
+        existing.setPaymentStatus(appointment.getPaymentStatus());
+        existing.setAmount(appointment.getAmount());
+        return appointmentRepository.save(existing);
+    }
+
+    @Override
+    @Transactional
+    public void deleteById(Long id) {
+        appointmentRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsById(Long id) {
+        return appointmentRepository.existsById(id);
+    }
+
     /** Patient-facing: doctor name/specialty enriched; patientName/patientPhone left null. */
     private List<AppointmentResponseDTO> mapToAppointmentResponseForPatient(List<Appointment> appointments) {
         ZoneId zone = ZoneId.systemDefault();

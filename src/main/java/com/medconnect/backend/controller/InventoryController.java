@@ -24,28 +24,29 @@ public class InventoryController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('PHARMACIST','ADMIN')")
-    public List<InventoryItem> getInventory() {
-        return inventoryService.getAll();
+    public ResponseEntity<List<InventoryItem>> getInventory() {
+        return ResponseEntity.ok(inventoryService.getAll());
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('PHARMACIST','ADMIN')")
-    public InventoryItem createInventory(@Valid @RequestBody InventoryItem item) {
+    public ResponseEntity<InventoryItem> createInventory(@Valid @RequestBody InventoryItem item) {
         System.out.println("Inventory item received: " + item.getMedicineName());
-        return inventoryService.save(item);
+        InventoryItem saved = inventoryService.save(item);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('PHARMACIST','ADMIN')")
-    public InventoryItem updateInventory(@PathVariable Long id, @RequestBody InventoryUpdateRequest request) {
-        return inventoryService.update(id, request);
+    public ResponseEntity<InventoryItem> updateInventory(@PathVariable Long id, @RequestBody InventoryUpdateRequest request) {
+        InventoryItem updated = inventoryService.update(id, request);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PHARMACIST','ADMIN')")
-    public ResponseEntity<?> deleteInventory(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteInventory(@PathVariable Long id) {
         inventoryService.delete(id);
-        return ResponseEntity.ok("Deleted successfully");
+        return ResponseEntity.noContent().build();
     }
 }
