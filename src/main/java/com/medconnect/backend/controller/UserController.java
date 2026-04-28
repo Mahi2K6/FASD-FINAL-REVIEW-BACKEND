@@ -3,9 +3,11 @@ package com.medconnect.backend.controller;
 import org.springframework.http.ResponseEntity;
 
 import com.medconnect.backend.model.Role;
+import com.medconnect.backend.model.dto.ChangePasswordRequest;
 import com.medconnect.backend.model.dto.UpdateProfileRequest;
 import com.medconnect.backend.model.dto.UserResponse;
 import com.medconnect.backend.service.UserService;
+import com.medconnect.backend.service.impl.UserServiceImpl;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +23,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -29,9 +32,19 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+    private final UserServiceImpl userServiceImpl;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, UserServiceImpl userServiceImpl) {
         this.userService = userService;
+        this.userServiceImpl = userServiceImpl;
+    }
+
+    // ── List all users (admin context needs this) ──
+
+    @GetMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        return ResponseEntity.ok(userService.findAll());
     }
 
     @GetMapping("/doctors")
@@ -52,11 +65,21 @@ public class UserController {
         return ResponseEntity.ok(userService.findById(id));
     }
 
+    // ── GET own profile (/profile or /me) ──
+
     @GetMapping("/profile")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponse> getProfile(Principal principal) {
         return ResponseEntity.ok(userService.getByEmail(principal.getName().trim().toLowerCase()));
     }
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponse> getMe(Principal principal) {
+        return ResponseEntity.ok(userService.getByEmail(principal.getName().trim().toLowerCase()));
+    }
+
+    // ── UPDATE profile (/profile or /update-profile) ──
 
     @PutMapping("/profile")
     @PreAuthorize("isAuthenticated()")
@@ -66,6 +89,39 @@ public class UserController {
     ) {
         return ResponseEntity.ok(userService.updateProfile(principal.getName().trim().toLowerCase(), request));
     }
+
+    @PutMapping("/update-profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponse> updateProfileAlias(
+            Principal principal,
+            @Valid @RequestBody UpdateProfileRequest request
+    ) {
+        return ResponseEntity.ok(userService.updateProfile(principal.getName().trim().toLowerCase(), request));
+    }
+
+    // ── Change password ──
+
+    @PostMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> changePassword(
+            Principal principal,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        try {
+            userServiceImpl.changePassword(
+                    principal.getName().trim().toLowerCase(),
+                    request.getCurrentPassword(),
+                    request.getNewPassword()
+            );
+            return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    // ── Profile image upload ──
 
     @PutMapping("/profile/image")
     @PreAuthorize("isAuthenticated()")

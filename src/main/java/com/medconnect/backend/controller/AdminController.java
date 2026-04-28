@@ -116,9 +116,7 @@ public class AdminController {
         if (!userRepository.existsById(id)) {
             return ResponseEntity.status(404).body("User not found");
         }
-        User user = userRepository.findById(id).orElseThrow();
-        user.setStatus(status);
-        userRepository.save(user);
-        return ResponseEntity.ok(UserResponse.from(user));
+        UserResponse updated = userService.updateStatus(id, status);
+        return ResponseEntity.ok(updated);
     }
 }

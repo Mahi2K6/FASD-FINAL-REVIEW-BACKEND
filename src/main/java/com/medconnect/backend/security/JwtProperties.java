@@ -2,7 +2,7 @@ package com.medconnect.backend.security;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "app.jwt")
+@ConfigurationProperties(prefix = "jwt")
 public class JwtProperties {
 
     /**

@@ -3,6 +3,8 @@ package com.medconnect.backend.model.dto;
 import com.medconnect.backend.model.AuthProvider;
 import com.medconnect.backend.model.Role;
 import com.medconnect.backend.model.UserStatus;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UserResponse {
 
@@ -17,6 +19,31 @@ public class UserResponse {
     private AuthProvider provider;
     private String emergencyContact;
     private String profileImageUrl;
+    private String address;
+    private String dob;
+    private String gender;
+    private List<Availability> availability = new ArrayList<>();
+
+    public static class Availability {
+        private Long id;
+        private String date;
+        private String time;
+
+        public Availability() {}
+
+        public Availability(Long id, String date, String time) {
+            this.id = id;
+            this.date = date;
+            this.time = time;
+        }
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getDate() { return date; }
+        public void setDate(String date) { this.date = date; }
+        public String getTime() { return time; }
+        public void setTime(String time) { this.time = time; }
+    }
 
     public static UserResponse from(com.medconnect.backend.model.User user) {
         UserResponse r = new UserResponse();
@@ -31,6 +58,9 @@ public class UserResponse {
         r.setProvider(user.getProvider());
         r.setEmergencyContact(user.getEmergencyContact());
         r.setProfileImageUrl(user.getProfileImageUrl());
+        r.setAddress(user.getAddress());
+        r.setDob(user.getDob());
+        r.setGender(user.getGender());
         return r;
     }
 
@@ -120,5 +150,33 @@ public class UserResponse {
 
     public void setProfileImageUrl(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+
+    public String getDob() { return dob; }
+    public void setDob(String dob) { this.dob = dob; }
+
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+
+    /** Alias: frontend reads avatarUrl */
+    @com.fasterxml.jackson.annotation.JsonProperty("avatarUrl")
+    public String getAvatarUrl() { return profileImageUrl; }
+
+    /** Alias: frontend reads fullName */
+    @com.fasterxml.jackson.annotation.JsonProperty("fullName")
+    public String getFullName() { return name; }
+
+    public List<Availability> getAvailability() {
+        if (availability == null) {
+            availability = new ArrayList<>();
+        }
+        return availability;
+    }
+
+    public void setAvailability(List<Availability> availability) {
+        this.availability = availability == null ? new ArrayList<>() : availability;
     }
 }

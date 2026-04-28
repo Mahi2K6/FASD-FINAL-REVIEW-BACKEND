@@ -24,7 +24,7 @@ import java.util.List;
 
 @Service
 public class AppointmentServiceImpl implements AppointmentService {
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
@@ -82,9 +82,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         appointment.setSlotId(slotId);
         appointment.setDoctorId(slot.getDoctorId());
-        appointment.setAppointmentDate(Date.from(slot.getSlotDate().atStartOfDay(zone).toInstant()));
-        appointment.setStartTime(formatSlotTime(slot.getStartTime()));
-        appointment.setEndTime(formatSlotTime(slot.getEndTime()));
+        appointment.setAppointmentDate(slot.getSlotDate());
+        appointment.setStartTime(slot.getStartTime());
+        appointment.setEndTime(slot.getEndTime());
         appointment.setProblemDescription(appointment.getProblemDescription());
         appointment.setStatus("PENDING");
         if (appointment.getPaymentStatus() == null) {
@@ -109,10 +109,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                 "You have a new appointment request from " + patientName,
                 "APPOINTMENT"
         );
-    }
-
-    private static String formatSlotTime(LocalTime t) {
-        return String.format("%02d:%02d", t.getHour(), t.getMinute());
     }
 
     private static boolean isSlotExpired(DoctorAvailability slot, ZoneId zone) {
@@ -177,7 +173,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     public Appointment markPaymentPaid(Long appointmentId) {
         Appointment a = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment not found: " + appointmentId));
-        a.setPaymentStatus(PaymentStatus.PAID);
+        a.setPaymentStatus(PaymentStatus.SUCCESS);
         return appointmentRepository.save(a);
     }
 
@@ -213,16 +209,25 @@ public class AppointmentServiceImpl implements AppointmentService {
         return appointmentRepository.existsById(id);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<AppointmentResponseDTO> findAll() {
+        List<Appointment> appointments = appointmentRepository.findAll();
+        if (appointments == null || appointments.isEmpty()) {
+            return List.of();
+        }
+        return mapToAppointmentResponseForDoctor(appointments);
+    }
+
     /** Patient-facing: doctor name/specialty enriched; patientName/patientPhone left null. */
     private List<AppointmentResponseDTO> mapToAppointmentResponseForPatient(List<Appointment> appointments) {
-        ZoneId zone = ZoneId.systemDefault();
         return appointments.stream().map(appointment -> {
             User doctor = appointment.getDoctorId() != null
                     ? userRepository.findById(appointment.getDoctorId()).orElse(null)
                     : null;
             String formattedDate = appointment.getAppointmentDate() == null
                     ? null
-                    : appointment.getAppointmentDate().toInstant().atZone(zone).toLocalDate().format(DATE_FORMAT);
+                    : appointment.getAppointmentDate().format(DATE_FORMAT);
             String paymentStatus = appointment.getPaymentStatus() == null ? null : appointment.getPaymentStatus().name();
             return new AppointmentResponseDTO(
                     appointment.getId(),
@@ -231,8 +236,8 @@ public class AppointmentServiceImpl implements AppointmentService {
                     doctor != null ? doctor.getName() : "Unknown",
                     doctor != null ? doctor.getSpecialization() : null,
                     formattedDate,
-                    appointment.getStartTime(),
-                    appointment.getEndTime(),
+                    appointment.getStartTime() != null ? appointment.getStartTime().toString() : null,
+                    appointment.getEndTime() != null ? appointment.getEndTime().toString() : null,
                     appointment.getStatus(),
                     appointment.getProblemDescription(),
                     paymentStatus,
@@ -246,7 +251,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     /** Doctor-facing: patient name/phone enriched; doctor fields still filled from doctor user for consistency. */
     private List<AppointmentResponseDTO> mapToAppointmentResponseForDoctor(List<Appointment> appointments) {
-        ZoneId zone = ZoneId.systemDefault();
         return appointments.stream().map(appointment -> {
             User doctor = appointment.getDoctorId() != null
                     ? userRepository.findById(appointment.getDoctorId()).orElse(null)
@@ -256,7 +260,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                     : null;
             String formattedDate = appointment.getAppointmentDate() == null
                     ? null
-                    : appointment.getAppointmentDate().toInstant().atZone(zone).toLocalDate().format(DATE_FORMAT);
+                    : appointment.getAppointmentDate().format(DATE_FORMAT);
             String paymentStatus = appointment.getPaymentStatus() == null ? null : appointment.getPaymentStatus().name();
             return new AppointmentResponseDTO(
                     appointment.getId(),
@@ -265,8 +269,8 @@ public class AppointmentServiceImpl implements AppointmentService {
                     doctor != null ? doctor.getName() : "Unknown",
                     doctor != null ? doctor.getSpecialization() : null,
                     formattedDate,
-                    appointment.getStartTime(),
-                    appointment.getEndTime(),
+                    appointment.getStartTime() != null ? appointment.getStartTime().toString() : null,
+                    appointment.getEndTime() != null ? appointment.getEndTime().toString() : null,
                     appointment.getStatus(),
                     appointment.getProblemDescription(),
                     paymentStatus,

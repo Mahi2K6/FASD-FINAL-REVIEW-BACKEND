@@ -10,7 +10,13 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 public class MedConnectBackendApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(MedConnectBackendApplication.class, args);
+		org.springframework.context.ApplicationContext ctx = SpringApplication.run(MedConnectBackendApplication.class, args);
+		String[] activeProfiles = ctx.getEnvironment().getActiveProfiles();
+		String activeProfile = activeProfiles.length > 0 ? java.util.Arrays.toString(activeProfiles) : "default";
+		String port = ctx.getEnvironment().getProperty("server.port");
+		System.out.println("MedConnect Backend Running");
+		System.out.println("Environment: " + activeProfile);
+		System.out.println("Port: " + port);
 	}
 
 }

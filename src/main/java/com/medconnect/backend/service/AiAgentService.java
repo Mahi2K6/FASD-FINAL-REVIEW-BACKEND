@@ -2,6 +2,7 @@ package com.medconnect.backend.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.medconnect.backend.model.AiConversationLog;
 import com.medconnect.backend.model.Appointment;
 import com.medconnect.backend.model.DoctorAvailability;
 import com.medconnect.backend.model.PaymentStatus;
@@ -10,6 +11,7 @@ import com.medconnect.backend.model.User;
 import com.medconnect.backend.model.UserStatus;
 import com.medconnect.backend.model.dto.AgentResponse;
 import com.medconnect.backend.model.dto.DoctorDTO;
+import com.medconnect.backend.repository.AiConversationLogRepository;
 import com.medconnect.backend.repository.AppointmentRepository;
 import com.medconnect.backend.repository.DoctorAvailabilityRepository;
 import com.medconnect.backend.repository.UserRepository;
@@ -25,6 +27,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -52,6 +55,7 @@ public class AiAgentService {
     private final HttpClient httpClient;
     private final String geminiApiKey;
     private final String geminiModel;
+    private final AiConversationLogRepository aiConversationLogRepository;
 
     public AiAgentService(
             UserRepository userRepository,
@@ -59,6 +63,7 @@ public class AiAgentService {
             AppointmentRepository appointmentRepository,
             DoctorAvailabilityService doctorAvailabilityService,
             ObjectMapper objectMapper,
+            AiConversationLogRepository aiConversationLogRepository,
             @Value("${app.ai.gemini-api-key:}") String geminiApiKey,
             @Value("${app.ai.gemini-model:gemini-2.5-flash}") String geminiModel
     ) {
@@ -67,9 +72,12 @@ public class AiAgentService {
         this.appointmentRepository = appointmentRepository;
         this.doctorAvailabilityService = doctorAvailabilityService;
         this.objectMapper = objectMapper;
+        this.aiConversationLogRepository = aiConversationLogRepository;
         this.geminiApiKey = geminiApiKey;
         this.geminiModel = geminiModel;
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build();
     }
 
     @Transactional
@@ -77,7 +85,7 @@ public class AiAgentService {
         User patient = userRepository.findByEmail(userEmail.trim().toLowerCase(Locale.ROOT))
                 .orElseThrow(() -> new RuntimeException("User not found: " + userEmail));
 
-        Analysis analysis = extractAnalysis(requestText);
+        Analysis analysis = extractAnalysis(requestText, userEmail);
         String specialty = safeSpecialty(analysis.specialty);
         String normalizedSpecialty = normalizeSpecialty(specialty);
         String priority = safePriority(analysis.priority);
@@ -161,9 +169,9 @@ public class AiAgentService {
         appointment.setPatientId(patient.getId());
         appointment.setDoctorId(selected.doctor().getId());
         appointment.setSlotId(lockedSlot.getId());
-        appointment.setAppointmentDate(Date.from(lockedSlot.getSlotDate().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-        appointment.setStartTime(formatTime(lockedSlot.getStartTime()));
-        appointment.setEndTime(formatTime(lockedSlot.getEndTime()));
+        appointment.setAppointmentDate(lockedSlot.getSlotDate());
+        appointment.setStartTime(lockedSlot.getStartTime());
+        appointment.setEndTime(lockedSlot.getEndTime());
         appointment.setProblemDescription("AI Agent: " + requestText);
         appointment.setStatus("PENDING_PAYMENT");
         appointment.setPaymentStatus(PaymentStatus.PENDING);
@@ -227,10 +235,14 @@ public class AiAgentService {
                 .toList();
     }
 
-    private Analysis extractAnalysis(String requestText) {
+    private Analysis extractAnalysis(String requestText, String userEmail) {
+        AiConversationLog logEntry = new AiConversationLog();
+        logEntry.setUserEmail(userEmail);
+        logEntry.setRequestText(requestText);
+
         // If Gemini API key is missing, use fallback immediately
         if (geminiApiKey == null || geminiApiKey.isBlank()) {
-            return fallbackAnalysis(requestText, "Gemini key missing, fallback used.");
+            return saveFallbackAndReturn(logEntry, requestText, "Gemini key missing, fallback used.");
         }
 
         String prompt = """
@@ -251,35 +263,56 @@ public class AiAgentService {
                 %s
                 """.formatted(requestText);
 
-        try {
-            String payload = objectMapper.writeValueAsString(buildGeminiPayload(prompt));
-            HttpRequest httpRequest = HttpRequest.newBuilder()
-                    .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/" + geminiModel + ":generateContent?key=" + geminiApiKey))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(payload))
-                    .build();
+        int maxRetries = 3;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                String payload = objectMapper.writeValueAsString(buildGeminiPayload(prompt));
+                HttpRequest httpRequest = HttpRequest.newBuilder()
+                        .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/" + geminiModel + ":generateContent?key=" + geminiApiKey))
+                        .header("Content-Type", "application/json")
+                        .timeout(Duration.ofSeconds(15))
+                        .POST(HttpRequest.BodyPublishers.ofString(payload))
+                        .build();
 
-            HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() / 100 != 2) {
-                log.warn("Gemini call failed with status {} body {}", response.statusCode(), response.body());
-                // Check for quota exceeded (429) or other API errors
-                if (response.statusCode() == 429) {
-                    return fallbackAnalysis(requestText, "AI quota exceeded, fallback used.");
-                } else {
-                    return fallbackAnalysis(requestText, "AI service unavailable, fallback used.");
+                HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() / 100 != 2) {
+                    log.warn("Gemini call failed with status {} body {}", response.statusCode(), response.body());
+                    if (response.statusCode() == 429 && attempt < maxRetries) {
+                        try { Thread.sleep(1000L * attempt); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                        continue;
+                    }
+                    return saveFallbackAndReturn(logEntry, requestText, "AI service unavailable (status " + response.statusCode() + ").");
                 }
-            }
 
-            return parseGeminiResponse(response.body(), requestText);
-        } catch (Exception ex) {
-            log.warn("Gemini processing failed", ex);
-            // Check if it's a quota exceeded exception
-            String errorMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase(Locale.ROOT) : "";
-            if (errorMsg.contains("quota") || errorMsg.contains("429") || errorMsg.contains("resource exhausted")) {
-                return fallbackAnalysis(requestText, "AI quota exceeded, fallback used.");
+                Analysis analysis = parseGeminiResponse(response.body(), requestText);
+                
+                logEntry.setResponseText(response.body());
+                logEntry.setIsFallback(false);
+                aiConversationLogRepository.save(logEntry);
+                
+                return analysis;
+            } catch (Exception ex) {
+                log.warn("Gemini processing failed on attempt " + attempt, ex);
+                if (attempt < maxRetries) {
+                    try { Thread.sleep(1000L * attempt); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                    continue;
+                }
+                logEntry.setErrorMessage(ex.getMessage());
+                return saveFallbackAndReturn(logEntry, requestText, "AI processing failed after retries.");
             }
-            return fallbackAnalysis(requestText, "AI processing failed, fallback used.");
         }
+        return saveFallbackAndReturn(logEntry, requestText, "AI processing exhausted retries.");
+    }
+
+    private Analysis saveFallbackAndReturn(AiConversationLog logEntry, String requestText, String reason) {
+        Analysis analysis = fallbackAnalysis(requestText, reason);
+        logEntry.setIsFallback(true);
+        logEntry.setErrorMessage(reason);
+        try {
+            logEntry.setResponseText(objectMapper.writeValueAsString(analysis));
+        } catch (Exception ignored) {}
+        aiConversationLogRepository.save(logEntry);
+        return analysis;
     }
 
     private Map<String, Object> buildGeminiPayload(String prompt) {

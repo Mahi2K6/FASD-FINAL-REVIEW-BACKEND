@@ -8,6 +8,10 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, Long
     List<Prescription> findByPatientId(Long patientId);
     List<Prescription> findByStatus(String status); // For Pharmacist to see pending ones
 
+    List<Prescription> findByDoctorId(Long doctorId);
+    java.util.Optional<Prescription> findByAppointmentId(Long appointmentId);
+    boolean existsByAppointmentId(Long appointmentId);
+
     void deleteByPatientId(Long patientId);
 
     void deleteByDoctorId(Long doctorId);

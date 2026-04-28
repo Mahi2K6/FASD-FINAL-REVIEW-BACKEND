@@ -18,43 +18,37 @@ public class UpdateProfileRequest {
     @Size(max = 255)
     private String emergencyContact;
 
-    public String getName() {
-        return name;
-    }
+    @Size(max = 500)
+    private String address;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    @Size(max = 16)
+    private String dob;
 
-    public String getPhone() {
-        return phone;
-    }
+    @Size(max = 16)
+    private String gender;
 
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public String getSpecialization() {
-        return specialization;
-    }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
-    public void setSpecialization(String specialization) {
-        this.specialization = specialization;
-    }
+    public String getSpecialization() { return specialization; }
+    public void setSpecialization(String specialization) { this.specialization = specialization; }
 
-    public Integer getExperience() {
-        return experience;
-    }
+    public Integer getExperience() { return experience; }
+    public void setExperience(Integer experience) { this.experience = experience; }
 
-    public void setExperience(Integer experience) {
-        this.experience = experience;
-    }
+    public String getEmergencyContact() { return emergencyContact; }
+    public void setEmergencyContact(String emergencyContact) { this.emergencyContact = emergencyContact; }
 
-    public String getEmergencyContact() {
-        return emergencyContact;
-    }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
 
-    public void setEmergencyContact(String emergencyContact) {
-        this.emergencyContact = emergencyContact;
-    }
+    public String getDob() { return dob; }
+    public void setDob(String dob) { this.dob = dob; }
+
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
 }
+

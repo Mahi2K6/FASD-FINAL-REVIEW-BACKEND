@@ -6,10 +6,13 @@ import com.medconnect.backend.model.User;
 import com.medconnect.backend.repository.NotificationRepository;
 import com.medconnect.backend.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -54,10 +57,39 @@ public class NotificationController {
     }
 
     @GetMapping("/my")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Notification>> myNotifications(Principal principal) {
-        User user = userRepository.findByEmail(principal.getName().trim().toLowerCase())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal.getName()));
+        User user = resolveUser(principal);
         List<Notification> list = notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
         return ResponseEntity.ok(list == null ? List.of() : list);
+    }
+
+    @PutMapping("/read-all")
+    @PreAuthorize("isAuthenticated()")
+    @Transactional
+    public ResponseEntity<?> markAllAsRead(Principal principal) {
+        User user = resolveUser(principal);
+        List<Notification> unread = notificationRepository.findByUserIdAndIsReadFalse(user.getId());
+        if (unread != null) {
+            for (Notification n : unread) {
+                n.setRead(true);
+                notificationRepository.save(n);
+            }
+        }
+        return ResponseEntity.ok(Map.of("message", "All notifications marked as read"));
+    }
+
+    @DeleteMapping("/clear")
+    @PreAuthorize("isAuthenticated()")
+    @Transactional
+    public ResponseEntity<?> clearNotifications(Principal principal) {
+        User user = resolveUser(principal);
+        notificationRepository.deleteByUserId(user.getId());
+        return ResponseEntity.ok(Map.of("message", "All notifications cleared"));
+    }
+
+    private User resolveUser(Principal principal) {
+        return userRepository.findByEmail(principal.getName().trim().toLowerCase())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + principal.getName()));
     }
 }
