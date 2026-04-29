@@ -13,8 +13,8 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-    // Pulls from environment variables on Render, falls back to localhost for local dev
-    @Value("${FRONTEND_URL:http://localhost:5174,http://localhost:3000,http://localhost:5173}")
+    // Pulls from environment variables on Railway, falls back to localhost for local dev
+    @Value("${FRONTEND_ORIGIN:http://localhost:5174,http://localhost:3000,http://localhost:5173}")
     private String[] frontendUrls;
 
     @Bean
