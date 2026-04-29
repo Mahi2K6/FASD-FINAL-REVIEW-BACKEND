@@ -11,7 +11,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/system")
-@CrossOrigin(origins = "*")
 public class SystemController {
 
     @Value("${app.name:MedConnect}")

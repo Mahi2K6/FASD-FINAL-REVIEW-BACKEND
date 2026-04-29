@@ -24,20 +24,23 @@ public class AdminBootstrap {
     public void init() {
         if (!bootstrapAdmin) return;
         
-        // Delete and recreate admin to ensure password is correctly BCrypt encoded
-        userRepository.findByEmail("admin@medconnect.com")
-            .ifPresent(userRepository::delete);
-
-        User admin = new User();
-        admin.setName("Super Admin");
-        admin.setEmail("admin@medconnect.com");
-        admin.setPassword(passwordEncoder.encode("Admin@1234"));
-        admin.setRole(Role.ADMIN);
-        admin.setStatus(UserStatus.ACTIVE);
-        admin.setProvider(AuthProvider.LOCAL);
-        admin.setPhone("0000000000");
-        userRepository.save(admin);
-
-        System.out.println("✅ Admin created: admin@medconnect.com / Admin@1234");
+        userRepository.findByEmail("admin123@medconnect.com").ifPresentOrElse(admin -> {
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setRole(Role.ADMIN);
+            admin.setStatus(UserStatus.ACTIVE);
+            userRepository.save(admin);
+            System.out.println("✅ Admin updated: admin123@medconnect.com / admin123");
+        }, () -> {
+            User admin = new User();
+            admin.setName("Super Admin");
+            admin.setEmail("admin123@medconnect.com");
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setRole(Role.ADMIN);
+            admin.setStatus(UserStatus.ACTIVE);
+            admin.setProvider(AuthProvider.LOCAL);
+            admin.setPhone("0000000000");
+            userRepository.save(admin);
+            System.out.println("✅ Admin created: admin123@medconnect.com / admin123");
+        });
     }
 }

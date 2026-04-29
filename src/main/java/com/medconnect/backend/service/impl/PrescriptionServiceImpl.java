@@ -29,7 +29,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final com.medconnect.backend.repository.AppointmentRepository appointmentRepository;
-    private final com.corundumstudio.socketio.SocketIOServer socketIOServer;
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     public PrescriptionServiceImpl(
             PrescriptionRepository prescriptionRepository,
@@ -37,14 +37,14 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             UserRepository userRepository,
             NotificationService notificationService,
             com.medconnect.backend.repository.AppointmentRepository appointmentRepository,
-            com.corundumstudio.socketio.SocketIOServer socketIOServer
+            org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate
     ) {
         this.prescriptionRepository = prescriptionRepository;
         this.prescriptionMedicineRepository = prescriptionMedicineRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.appointmentRepository = appointmentRepository;
-        this.socketIOServer = socketIOServer;
+        this.messagingTemplate = messagingTemplate;
     }
 
     private User validateUser(String email) {
@@ -101,7 +101,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         System.out.println("Prescription created for appointment: " + appointment.getId());
         
         // Real-time socket sync
-        socketIOServer.getRoomOperations("user-" + saved.getPatientId()).sendEvent("prescription-issued", saved);
+        messagingTemplate.convertAndSend("/topic/user-" + saved.getPatientId(), saved);
 
         // Notify patient
         if (saved.getPatientId() != null) {

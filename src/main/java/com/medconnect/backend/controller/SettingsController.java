@@ -13,7 +13,6 @@ import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/settings")
-@CrossOrigin(origins = "*")
 public class SettingsController {
 
     private final UserSettingsRepository settingsRepository;

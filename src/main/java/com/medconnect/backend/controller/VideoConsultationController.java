@@ -10,7 +10,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/video")
-@CrossOrigin(origins = "*")
 public class VideoConsultationController {
 
     private final VideoConsultationService videoConsultationService;

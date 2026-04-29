@@ -10,7 +10,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/consultation")
-@CrossOrigin(origins = "*")
 public class ConsultationController {
 
     private final AppointmentRepository appointmentRepository;

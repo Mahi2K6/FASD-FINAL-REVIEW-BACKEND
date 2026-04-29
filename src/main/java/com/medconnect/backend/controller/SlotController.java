@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/slots")
-@CrossOrigin(origins = "*")
 public class SlotController {
 
     private final DoctorAvailabilityService doctorAvailabilityService;

@@ -1,89 +1,32 @@
 package com.medconnect.backend.socket;
 
-import com.corundumstudio.socketio.SocketIOClient;
-import com.corundumstudio.socketio.SocketIOServer;
-import com.corundumstudio.socketio.annotation.OnConnect;
-import com.corundumstudio.socketio.annotation.OnDisconnect;
-import com.corundumstudio.socketio.annotation.OnEvent;
-import org.springframework.stereotype.Component;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Controller;
 
-@Component
+@Controller
 public class ConsultationSocketHandler {
 
-    private final SocketIOServer server;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public ConsultationSocketHandler(SocketIOServer server) {
-        this.server = server;
+    public ConsultationSocketHandler(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
     }
 
-    @OnConnect
-    public void onConnect(SocketIOClient client) {
-        System.out.println("Socket.IO client connected: " + client.getSessionId());
+    @MessageMapping("/offer/{roomId}")
+    public void onOffer(@DestinationVariable String roomId, @Payload Object payload) {
+        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/offer", payload);
     }
 
-    @OnDisconnect
-    public void onDisconnect(SocketIOClient client) {
-        System.out.println("Socket.IO client disconnected: " + client.getSessionId());
+    @MessageMapping("/answer/{roomId}")
+    public void onAnswer(@DestinationVariable String roomId, @Payload Object payload) {
+        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/answer", payload);
     }
 
-    @OnEvent("join-room")
-    public void onJoinRoom(SocketIOClient client, String roomId) {
-        System.out.println("User joined room: " + roomId);
-        client.joinRoom(roomId);
-        // Broadcast to others in the room
-        server.getRoomOperations(roomId).sendEvent("participant-joined", client.getSessionId());
-    }
-
-    @OnEvent("join-personal-room")
-    public void onJoinPersonalRoom(SocketIOClient client, String userId) {
-        System.out.println("User joined personal room: user-" + userId);
-        client.joinRoom("user-" + userId);
-    }
-
-    @OnEvent("leave-room")
-    public void onLeaveRoom(SocketIOClient client, String roomId) {
-        System.out.println("User left room: " + roomId);
-        client.leaveRoom(roomId);
-        server.getRoomOperations(roomId).sendEvent("participant-left", client.getSessionId());
-    }
-
-    @OnEvent("offer")
-    public void onOffer(SocketIOClient client, Object payload) {
-        // Forward the offer to the rest of the room
-        for (String room : client.getAllRooms()) {
-            if (!room.isEmpty()) {
-                server.getRoomOperations(room).getClients().forEach(c -> {
-                    if (!c.getSessionId().equals(client.getSessionId())) {
-                        c.sendEvent("offer", payload);
-                    }
-                });
-            }
-        }
-    }
-
-    @OnEvent("answer")
-    public void onAnswer(SocketIOClient client, Object payload) {
-        for (String room : client.getAllRooms()) {
-            if (!room.isEmpty()) {
-                server.getRoomOperations(room).getClients().forEach(c -> {
-                    if (!c.getSessionId().equals(client.getSessionId())) {
-                        c.sendEvent("answer", payload);
-                    }
-                });
-            }
-        }
-    }
-
-    @OnEvent("ice-candidate")
-    public void onIceCandidate(SocketIOClient client, Object payload) {
-        for (String room : client.getAllRooms()) {
-            if (!room.isEmpty()) {
-                server.getRoomOperations(room).getClients().forEach(c -> {
-                    if (!c.getSessionId().equals(client.getSessionId())) {
-                        c.sendEvent("ice-candidate", payload);
-                    }
-                });
-            }
-        }
+    @MessageMapping("/ice-candidate/{roomId}")
+    public void onIceCandidate(@DestinationVariable String roomId, @Payload Object payload) {
+        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/ice-candidate", payload);
     }
 }
